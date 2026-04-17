@@ -108,19 +108,35 @@
             font-size: 20px;
             border-radius: 8px;
             border: 3px solid #38bdf8;
-            margin-bottom: 25px;
+            margin-bottom: 15px;
             width: 80%;
             max-width: 250px;
             text-align: center;
             background: #1e293b;
             color: #fff;
             font-family: inherit;
+            pointer-events: auto;
         }
 
         input[type="text"]:focus {
             outline: none;
             border-color: #facc15;
             box-shadow: 0 0 10px #facc15;
+        }
+
+        #admin-controls {
+            margin-bottom: 25px;
+        }
+
+        #admin-controls select {
+            padding: 8px;
+            font-size: 16px;
+            border-radius: 5px;
+            background: #1e293b;
+            color: white;
+            border: 2px solid #4ade80;
+            cursor: pointer;
+            font-family: inherit;
         }
 
         .btn {
@@ -216,9 +232,33 @@
                 Look out for <strong>x2</strong> and <strong>x3</strong> bonus words!
             </p>
             <input type="text" id="player-name" placeholder="Enter your name" autocomplete="off">
+            
+            <div id="admin-controls" style="display: none;">
+                <label style="color: #4ade80; font-weight: bold; font-size: 18px; margin-right: 10px;">Cheat Start:</label>
+                <select id="level-select">
+                    <option value="1">Level 1 (Earth)</option>
+                    <option value="2">Level 2 (Space)</option>
+                </select>
+            </div>
+            
             <br>
             <button class="btn" id="start-btn">PLAY GAME</button>
         </div>
+        
+        <div id="intermission-screen" style="display:none;">
+            <h1 style="color: #a855f7;">LEVEL 2: SPACE VOWELS!</h1>
+            <p style="font-size: 24px; color: #fff;">You mastered the Earth level!</p>
+            <p>Get ready for low gravity, moving platforms, and floating words!</p>
+            <button class="btn" style="background-color: #a855f7; box-shadow: 0 6px 0 #7e22ce;" id="level2-btn">LAUNCH TO SPACE</button>
+        </div>
+
+        <div id="win-screen" style="display:none;">
+            <h1 id="win-title" style="color: #facc15;">You Did It!</h1>
+            <p style="font-size: 24px; color: #fff;">Final Score: <span id="win-score" style="color: #facc15;">0</span></p>
+            <p>You mastered EVERY vowel team in the galaxy!</p>
+            <button class="btn" id="win-restart-btn">PLAY AGAIN</button>
+        </div>
+
         <div id="game-over-screen" style="display:none;">
             <h1 id="go-title">Game Over!</h1>
             <p style="font-size: 24px; color: #fff;">Final Score: <span id="final-score" style="color: #facc15;">0</span></p>
@@ -330,6 +370,8 @@
     // UI Elements
     const overlay = document.getElementById('overlay');
     const startScreen = document.getElementById('start-screen');
+    const intermissionScreen = document.getElementById('intermission-screen');
+    const winScreen = document.getElementById('win-screen');
     const gameOverScreen = document.getElementById('game-over-screen');
     const nameInput = document.getElementById('player-name');
     
@@ -343,9 +385,21 @@
     const readWordContainer = document.getElementById('read-word-container');
     const readBtn = document.getElementById('read-btn');
 
+    // Admin Cheat Listener
+    nameInput.addEventListener('input', (e) => {
+        if (e.target.value.trim().toLowerCase() === 'admin') {
+            document.getElementById('admin-controls').style.display = 'block';
+        } else {
+            document.getElementById('admin-controls').style.display = 'none';
+        }
+    });
+
     // Input Handling
     const keys = { left: false, right: false, up: false };
+    
     window.addEventListener('keydown', (e) => {
+        if (e.target.tagName.toLowerCase() === 'input') return;
+
         if (gameState === 'reading' && e.code === 'Enter') {
             e.preventDefault();
             advanceReading();
@@ -361,6 +415,8 @@
         }
     });
     window.addEventListener('keyup', (e) => {
+        if (e.target.tagName.toLowerCase() === 'input') return;
+
         if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
         if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
         if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') keys.up = false;
@@ -371,7 +427,12 @@
     let playerName = '';
     let score = 0;
     let health = 3;
-    let currentTargetTeam = 'EA';
+    
+    // Level Progression Logic
+    let currentLevel = 1;
+    let currentTargetTeamIndex = 0;
+    let currentTargetTeam = teams[0];
+    let teamsCompletedThisLevel = 0;
     let wordsCollected = 0;
     const wordsNeeded = 5;
     
@@ -379,12 +440,13 @@
     let currentReadingWords = [];
     let currentReadingIndex = 0;
 
-    // Physics Engine Constants
-    const gravity = 0.20; 
-    const friction = 0.85; 
-    const acceleration = 0.5;
-    const terminalVelocity = 6;
-    const maxSpeed = 2.8;
+    // Physics Engine Variables
+    let gravity = 0.20; 
+    let friction = 0.85; 
+    let acceleration = 0.5;
+    let terminalVelocity = 6;
+    let maxSpeed = 2.8;
+    let playerJumpPower = -8.0; 
 
     class Player {
         constructor() {
@@ -394,14 +456,13 @@
             this.y = canvas.height - 100;
             this.vx = 0;
             this.vy = 0;
-            this.jumpPower = -8.0; 
             this.grounded = false;
             this.facingRight = true;
             this.invulnerableTimer = 0;
+            this.currentPlat = null;
         }
 
         update() {
-            // Apply gradual acceleration
             if (keys.left) {
                 this.vx -= acceleration;
                 this.facingRight = false;
@@ -411,21 +472,17 @@
                 this.facingRight = true;
             }
 
-            // Apply friction
             this.vx *= friction;
-            
-            // Hard speed cap
             if (this.vx > maxSpeed) this.vx = maxSpeed;
             if (this.vx < -maxSpeed) this.vx = -maxSpeed;
 
-            // Apply gravity
             this.vy += gravity;
             if (this.vy > terminalVelocity) this.vy = terminalVelocity;
 
-            // Jump
             if (keys.up && this.grounded) {
-                this.vy = this.jumpPower;
+                this.vy = playerJumpPower;
                 this.grounded = false;
+                this.currentPlat = null;
                 playSound('jump');
             }
 
@@ -433,10 +490,16 @@
             let oldY = this.y;
 
             this.x += this.vx;
+            
+            if (this.grounded && this.currentPlat && this.currentPlat.isMoving) {
+                this.x += this.currentPlat.vx;
+            }
+
             this.checkPlatformCollisions(oldX, oldY, true);
 
             this.y += this.vy;
             this.grounded = false;
+            this.currentPlat = null;
             this.checkPlatformCollisions(oldX, oldY, false);
 
             if (this.x > canvas.width) this.x = -this.w;
@@ -461,10 +524,11 @@
                         else if (this.vx < 0) this.x = plat.x + plat.w;
                         this.vx = 0;
                     } else {
-                        if (this.vy > 0) {
+                        if (this.vy > 0) { 
                             this.y = plat.y - this.h;
                             this.vy = 0;
                             this.grounded = true;
+                            this.currentPlat = plat;
                         } else if (this.vy < 0) {
                             this.y = plat.y + plat.h;
                             this.vy = 0;
@@ -483,7 +547,6 @@
             ctx.roundRect(this.x, this.y, this.w, this.h, 8);
             ctx.fill();
             
-            // Antenna
             ctx.fillStyle = '#a1a1aa';
             let antennaBob = this.grounded ? 0 : Math.sin(Date.now()/50)*2;
             ctx.fillRect(this.x + this.w/2 - 2, this.y - 10 + antennaBob, 4, 10);
@@ -492,36 +555,56 @@
             ctx.arc(this.x + this.w/2, this.y - 12 + antennaBob, 4, 0, Math.PI*2);
             ctx.fill();
 
-            // Visor
             ctx.fillStyle = '#1e293b';
             ctx.beginPath();
             ctx.roundRect(this.x + (this.facingRight?10:4), this.y + 6, 18, 12, 4);
             ctx.fill();
             
-            // Glowing Eye
             ctx.fillStyle = '#38bdf8';
             ctx.fillRect(this.x + (this.facingRight?16:8), this.y + 9, 6, 6);
 
-            // Tank Treads / Wheels
             ctx.fillStyle = '#3f3f46';
             ctx.beginPath();
             ctx.roundRect(this.x + 2, this.y + this.h - 6, 10, 8, 3);
             ctx.roundRect(this.x + this.w - 12, this.y + this.h - 6, 10, 8, 3);
             ctx.fill();
+
+            if (currentLevel === 2) {
+                ctx.fillStyle = 'rgba(167, 243, 208, 0.3)';
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(this.x + this.w/2, this.y + 12, 22, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            }
         }
     }
 
     class Platform {
-        constructor(x, y, w, h) {
+        constructor(x, y, w, h, isMoving = false) {
             this.x = x;
             this.y = y;
             this.w = w;
             this.h = h;
-            this.color = '#10b981';
+            this.color = currentLevel === 2 ? '#8b5cf6' : '#10b981'; 
+            this.baseColor = currentLevel === 2 ? '#4c1d95' : '#064e3b';
+            this.isMoving = isMoving;
+            this.vx = isMoving ? ((Math.random() > 0.5 ? 1 : -1) * 1.2) : 0;
+            this.startX = x;
+        }
+
+        update() {
+            if (this.isMoving) {
+                this.x += this.vx;
+                if (this.x < 50 || this.x + this.w > canvas.width - 50) {
+                    this.vx *= -1;
+                }
+            }
         }
 
         draw() {
-            ctx.fillStyle = '#064e3b';
+            ctx.fillStyle = this.baseColor;
             ctx.fillRect(this.x, this.y, this.w, this.h);
             ctx.fillStyle = this.color;
             ctx.fillRect(this.x, this.y, this.w, 8);
@@ -540,7 +623,10 @@
             this.bobOffset = Math.random() * Math.PI * 2;
             this.active = true;
             
-            // Multiplier Logic
+            this.isFloating = (currentLevel === 2);
+            this.vx = this.isFloating ? ((Math.random() - 0.5) * 1.5) : 0;
+            this.vy = this.isFloating ? ((Math.random() - 0.5) * 1.5) : 0;
+            
             this.multiplier = 1;
             if (isTarget) {
                 let r = Math.random();
@@ -550,31 +636,44 @@
         }
 
         update() {
-            this.bobOffset += 0.05;
+            if (this.isFloating) {
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                if (this.x < 0 || this.x + this.w > canvas.width) this.vx *= -1;
+                if (this.y < 50 || this.y + this.h > canvas.height - 60) this.vy *= -1;
+            } else {
+                this.bobOffset += 0.05;
+            }
         }
 
         draw() {
             if (!this.active) return;
             
-            let currentY = this.y + Math.sin(this.bobOffset) * 5;
+            let currentY = this.isFloating ? this.y : this.y + Math.sin(this.bobOffset) * 5;
 
-            // Box
             ctx.fillStyle = this.multiplier > 1 ? 'rgba(60, 40, 10, 0.9)' : 'rgba(15, 23, 42, 0.8)';
             ctx.strokeStyle = this.multiplier > 1 ? '#facc15' : '#38bdf8';
             ctx.lineWidth = this.multiplier > 1 ? 3 : 2;
-            ctx.beginPath();
-            ctx.roundRect(this.x, currentY, this.w, this.h, 5);
-            ctx.fill();
-            ctx.stroke();
+            
+            if (this.isFloating) {
+                ctx.beginPath();
+                ctx.ellipse(this.x + this.w/2, currentY + this.h/2, this.w/2 + 5, this.h/2 + 5, 0, 0, Math.PI*2);
+                ctx.fill();
+                ctx.stroke();
+            } else {
+                ctx.beginPath();
+                ctx.roundRect(this.x, currentY, this.w, this.h, 5);
+                ctx.fill();
+                ctx.stroke();
+            }
 
-            // Text
             ctx.fillStyle = '#fff';
             ctx.font = '16px monospace';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(this.text, this.x + this.w/2, currentY + this.h/2);
 
-            // Multiplier Badge
             if (this.multiplier > 1) {
                 ctx.fillStyle = '#facc15';
                 ctx.beginPath();
@@ -594,26 +693,48 @@
             this.plat = platform;
             this.x = platform.x + platform.w / 2;
             this.y = platform.y - this.h;
-            this.vx = (Math.random() > 0.5 ? 1 : -1) * 0.4; // Slower enemies
-            this.color = '#e11d48'; // Spiky Slime
+            this.vx = (Math.random() > 0.5 ? 1 : -1) * 0.4;
+            this.vy = 0;
+            this.color = currentLevel === 2 ? '#d946ef' : '#e11d48'; 
             this.active = true;
         }
 
         update() {
             if (!this.active) return;
+            
+            // Move with moving platform ALWAYS
+            if (this.plat.isMoving) {
+                this.x += this.plat.vx;
+            }
+            
             this.x += this.vx;
 
+            // Bounding box for reversing direction on the platform
             if (this.x <= this.plat.x || this.x + this.w >= this.plat.x + this.plat.w) {
                 this.vx *= -1;
+                // Clamp position so they don't slide off if the platform turns around quickly
+                if (this.x < this.plat.x) this.x = this.plat.x;
+                if (this.x + this.w > this.plat.x + this.plat.w) this.x = this.plat.x + this.plat.w - this.w;
+            }
+
+            if (currentLevel === 2) {
+                this.y += this.vy;
+                this.vy += gravity; 
+                if (this.y + this.h > this.plat.y) {
+                    this.y = this.plat.y - this.h;
+                    this.vy = -3 - Math.random() * 2; 
+                }
+            } else {
+                this.y = this.plat.y - this.h;
             }
 
             if (player.invulnerableTimer === 0 &&
                 player.x < this.x + this.w && player.x + player.w > this.x &&
                 player.y < this.y + this.h && player.y + player.h > this.y) {
                 
-                if (player.vy > 0 && player.y + player.h < this.y + this.h / 2) {
+                if (player.vy > 0 && player.y + player.h < this.y + this.h / 2 + 10) {
                     this.active = false;
-                    player.vy = -8; // Bounce
+                    player.vy = playerJumpPower; 
                     score += 50;
                     playSound('stomp');
                     spawnParticles(this.x + this.w/2, this.y + this.h/2, this.color);
@@ -626,13 +747,12 @@
 
         draw() {
             if (!this.active) return;
-            let bob = Math.sin(Date.now() / 120) * 3; // Squish animation
+            let bob = Math.sin(Date.now() / 120) * 3; 
 
             ctx.fillStyle = this.color;
             ctx.beginPath();
             ctx.moveTo(this.x, this.y + this.h);
             ctx.lineTo(this.x + this.w, this.y + this.h);
-            // Spikes
             ctx.lineTo(this.x + this.w - 2, this.y + bob);
             ctx.lineTo(this.x + this.w/2 + 4, this.y - 6 + bob);
             ctx.lineTo(this.x + this.w/2, this.y + bob);
@@ -640,7 +760,6 @@
             ctx.lineTo(this.x + 2, this.y + bob);
             ctx.fill();
             
-            // Angry Eyes
             ctx.fillStyle = '#fff';
             ctx.fillRect(this.x + 6, this.y + 6 + bob, 6, 6);
             ctx.fillRect(this.x + 16, this.y + 6 + bob, 6, 6);
@@ -715,13 +834,22 @@
 
     function buildLevel() {
         platforms = [];
-        // Extend the ground past the 0 and 800 boundaries so the player doesn't slip through
         platforms.push(new Platform(-100, 550, 1000, 50));
-        platforms.push(new Platform(150, 420, 150, 20));
-        platforms.push(new Platform(500, 420, 150, 20));
-        platforms.push(new Platform(300, 280, 200, 20));
-        platforms.push(new Platform(50, 180, 150, 20));
-        platforms.push(new Platform(600, 180, 150, 20));
+
+        if (currentLevel === 1) {
+            platforms.push(new Platform(150, 420, 150, 20));
+            platforms.push(new Platform(500, 420, 150, 20));
+            platforms.push(new Platform(300, 280, 200, 20));
+            platforms.push(new Platform(50, 180, 150, 20));
+            platforms.push(new Platform(600, 180, 150, 20));
+        } else if (currentLevel === 2) {
+            // Moving Platforms for Space Level
+            platforms.push(new Platform(100, 420, 150, 20, true));
+            platforms.push(new Platform(550, 420, 150, 20, true));
+            platforms.push(new Platform(300, 280, 150, 20, true));
+            platforms.push(new Platform(150, 150, 120, 20, true));
+            platforms.push(new Platform(550, 150, 120, 20, true));
+        }
     }
 
     function getRandomWord(team) {
@@ -737,7 +865,6 @@
     function spawnInitialWords() {
         words = [];
         
-        // Filter out spawn points so a word doesn't spawn exactly where the player is standing
         let availablePoints = spawnPoints.filter(pt => {
             if (!player) return true;
             let isPlayerNear = (player.x < pt.x + 80 + 30 && player.x + player.w > pt.x - 30 &&
@@ -798,7 +925,7 @@
         playSound('wrong');
         player.vy = -6; 
         player.vx = (player.facingRight ? -6 : 6);
-        player.invulnerableTimer = 180; // 3 seconds invincibility
+        player.invulnerableTimer = 180; 
         
         document.getElementById('game-container').style.transform = 'translate(10px, 10px)';
         setTimeout(() => document.getElementById('game-container').style.transform = 'translate(-10px, -10px)', 50);
@@ -812,13 +939,25 @@
     }
 
     function cycleTargetTeam() {
-        let currentIndex = teams.indexOf(currentTargetTeam);
-        currentTargetTeam = teams[(currentIndex + 1) % teams.length];
+        teamsCompletedThisLevel++;
+
+        if (teamsCompletedThisLevel >= teams.length) {
+            if (currentLevel === 1) {
+                showIntermission();
+            } else {
+                winGame();
+            }
+            return;
+        }
+
+        currentTargetTeamIndex++;
+        currentTargetTeam = teams[currentTargetTeamIndex % teams.length];
         wordsCollected = 0;
         
-        // Background change
-        bgIndex = (bgIndex + 1) % backgrounds.length;
-        document.getElementById('game-container').style.background = backgrounds[bgIndex];
+        if (currentLevel === 1) {
+            bgIndex = (bgIndex + 1) % backgrounds.length;
+            document.getElementById('game-container').style.background = backgrounds[bgIndex];
+        }
 
         playSound('levelup');
         targetVowelEl.innerText = currentTargetTeam;
@@ -863,6 +1002,16 @@
             if (player.x < w.x + w.w && player.x + player.w > w.x &&
                 player.y < w.y + w.h && player.y + player.h > w.y) {
                 
+                // If player is invincible, IGNORE wrong words completely!
+                if (!w.isTarget && player.invulnerableTimer > 0) {
+                    // Gently push floating words away so they don't hover on the player
+                    if (w.isFloating) {
+                        w.vx = (w.x + w.w/2 > player.x + player.w/2) ? 1.5 : -1.5;
+                        w.vy = (w.y + w.h/2 > player.y + player.h/2) ? 1.5 : -1.5;
+                    }
+                    continue; 
+                }
+
                 w.active = false;
                 words.splice(i, 1);
 
@@ -872,14 +1021,13 @@
                     let mult = w.multiplier;
                     let earnedPoints = 100 * mult;
                     score += earnedPoints;
-                    wordsCollected += mult; // Multiplier advances progress faster!
+                    wordsCollected += mult; 
                     
                     spawnParticles(w.x + w.w/2, w.y + w.h/2, mult > 1 ? '#facc15' : '#38bdf8');
                     floatingTexts.push(new FloatingText(w.x + w.w/2, w.y, `+${earnedPoints}`, "#4ade80"));
                     
                     updateHUD();
 
-                    // Setup reading modal for multiple words
                     gameState = 'reading';
                     currentReadingWords = [w.text];
                     for(let k = 1; k < mult; k++) {
@@ -902,14 +1050,12 @@
         
         currentReadingIndex++;
         if (currentReadingIndex < currentReadingWords.length) {
-            // Show the next word
             renderCurrentReadingWord();
         } else {
-            // Finished reading all words
             readingModal.style.display = 'none';
             gameState = 'playing';
             keys.left = keys.right = keys.up = false; 
-            player.invulnerableTimer = 180; // 3 seconds of invincibility when resuming
+            player.invulnerableTimer = 180; 
 
             if (wordsCollected >= wordsNeeded) {
                 cycleTargetTeam();
@@ -919,21 +1065,38 @@
         }
     }
 
-    // --- Main Game Loops ---
+    // --- Main Game Flow ---
     function initGame() {
         let inputName = nameInput.value.trim();
         playerName = inputName !== '' ? inputName : 'Friend';
 
         initAudio();
-        player = new Player();
         score = 0;
         health = 3;
+
+        // Admin Cheat Level Check
+        if (playerName.toLowerCase() === 'admin' && document.getElementById('level-select').value === '2') {
+            startLevelTwo();
+            return;
+        }
+
+        currentLevel = 1;
+        gravity = 0.20; 
+        playerJumpPower = -8.0; 
+        maxSpeed = 2.8;
+        acceleration = 0.5;
+        
+        teamsCompletedThisLevel = 0;
+        currentTargetTeamIndex = 0;
+        currentTargetTeam = teams[0];
         wordsCollected = 0;
-        currentTargetTeam = 'EA';
+        
+        player = new Player();
         targetVowelEl.innerText = currentTargetTeam;
         particles = [];
         floatingTexts = [];
-        bgIndex = Math.floor(Math.random() * backgrounds.length); // Randomize starting background
+        
+        bgIndex = Math.floor(Math.random() * backgrounds.length); 
         document.getElementById('game-container').style.background = backgrounds[bgIndex];
         
         buildLevel();
@@ -945,7 +1108,54 @@
         overlay.style.display = 'none';
         startScreen.style.display = 'none';
         gameOverScreen.style.display = 'none';
+        winScreen.style.display = 'none';
+        intermissionScreen.style.display = 'none';
         readingModal.style.display = 'none';
+        targetDisplay.style.display = 'block';
+    }
+
+    function showIntermission() {
+        gameState = 'intermission';
+        targetDisplay.style.display = 'none';
+        overlay.style.display = 'flex';
+        intermissionScreen.style.display = 'block';
+    }
+
+    function startLevelTwo() {
+        currentLevel = 2;
+        teamsCompletedThisLevel = 0;
+        currentTargetTeamIndex = 0;
+        currentTargetTeam = teams[0];
+        wordsCollected = 0;
+        
+        // Floatier Space Mechanics!
+        gravity = 0.06; 
+        playerJumpPower = -6.0; 
+        maxSpeed = 2.4; // Slightly faster left/right speed
+        acceleration = 0.25; // Slightly faster acceleration
+
+        if (!player) player = new Player();
+        player.x = canvas.width / 2 - player.w / 2;
+        player.y = canvas.height - 100;
+        player.vx = 0;
+        player.vy = 0;
+        player.invulnerableTimer = 180;
+        
+        targetVowelEl.innerText = currentTargetTeam;
+        particles = [];
+        floatingTexts = [];
+        
+        document.getElementById('game-container').style.background = '#020617'; 
+        
+        buildLevel();
+        spawnInitialWords();
+        spawnEnemies();
+        updateHUD();
+
+        gameState = 'playing';
+        overlay.style.display = 'none';
+        startScreen.style.display = 'none';
+        intermissionScreen.style.display = 'none';
         targetDisplay.style.display = 'block';
     }
 
@@ -960,11 +1170,23 @@
         gameOverScreen.style.display = 'block';
     }
 
+    function winGame() {
+        gameState = 'win';
+        targetDisplay.style.display = 'none';
+        
+        document.getElementById('win-title').innerText = `You Did It, ${playerName}!`;
+        document.getElementById('win-score').innerText = score;
+        
+        overlay.style.display = 'flex';
+        winScreen.style.display = 'block';
+    }
+
     function update() {
         if (gameState !== 'playing') return;
 
         player.update();
         
+        for (let plat of platforms) plat.update();
         for (let enemy of enemies) enemy.update();
         for (let word of words) word.update();
         
@@ -985,11 +1207,29 @@
 
         if (gameState !== 'playing') return;
 
+        // Draw background stars
         ctx.fillStyle = '#ffffff';
-        for(let i=0; i<20; i++){
+        for(let i=0; i<30; i++){
             let sx = (Math.sin(i*123) * 0.5 + 0.5) * canvas.width;
             let sy = (Math.cos(i*321) * 0.5 + 0.5) * canvas.height;
-            ctx.fillRect(sx, sy, 2, 2);
+            // Make stars brighter in space level
+            ctx.globalAlpha = currentLevel === 2 ? (Math.sin(Date.now()/500 + i) * 0.5 + 0.5) : 0.6;
+            ctx.fillRect(sx, sy, currentLevel === 2 ? 3 : 2, currentLevel === 2 ? 3 : 2);
+        }
+        ctx.globalAlpha = 1.0;
+
+        // Draw Moon in space level
+        if (currentLevel === 2) {
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.arc(650, 150, 60, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#334155';
+            ctx.beginPath();
+            ctx.arc(630, 130, 15, 0, Math.PI * 2);
+            ctx.arc(665, 170, 10, 0, Math.PI * 2);
+            ctx.arc(675, 120, 8, 0, Math.PI * 2);
+            ctx.fill();
         }
 
         for (let plat of platforms) plat.draw();
@@ -1009,8 +1249,14 @@
 
     // Event Listeners
     document.getElementById('start-btn').addEventListener('click', initGame);
+    document.getElementById('level2-btn').addEventListener('click', startLevelTwo);
+    
     document.getElementById('restart-btn').addEventListener('click', () => {
         gameOverScreen.style.display = 'none';
+        startScreen.style.display = 'block';
+    });
+    document.getElementById('win-restart-btn').addEventListener('click', () => {
+        winScreen.style.display = 'none';
         startScreen.style.display = 'block';
     });
 
