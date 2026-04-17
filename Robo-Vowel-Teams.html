@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vowel Team Adventure!</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a2e;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            border: 4px solid #16213e;
+            border-radius: 10px;
+            background: linear-gradient(to bottom, #0f3460, #1a1a2e);
+            transition: background 1s ease-in-out;
+        }
+
+        canvas {
+            display: block;
+            border-radius: 6px;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 25px;
+            font-size: 20px;
+            font-weight: bold;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        #target-display {
+            position: absolute;
+            top: 60px;
+            width: 100%;
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            color: #e94560;
+            text-shadow: 2px 2px 0 #000, 0 0 10px #e94560;
+            transition: transform 0.2s;
+        }
+
+        .pulse {
+            transform: scale(1.1);
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+            text-align: center;
+            z-index: 10;
+        }
+
+        h1 {
+            color: #4ade80;
+            font-size: 48px;
+            margin-bottom: 10px;
+            text-shadow: 4px 4px 0 #000;
+        }
+
+        p {
+            font-size: 18px;
+            max-width: 600px;
+            line-height: 1.5;
+            margin-bottom: 30px;
+            color: #ccc;
+        }
+
+        input[type="text"] {
+            padding: 12px;
+            font-size: 20px;
+            border-radius: 8px;
+            border: 3px solid #38bdf8;
+            margin-bottom: 25px;
+            width: 80%;
+            max-width: 250px;
+            text-align: center;
+            background: #1e293b;
+            color: #fff;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #facc15;
+            box-shadow: 0 0 10px #facc15;
+        }
+
+        .btn {
+            background-color: #e94560;
+            color: white;
+            border: 4px solid #fff;
+            padding: 15px 40px;
+            font-size: 24px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+            box-shadow: 0 6px 0 #b32d43;
+        }
+
+        .btn:hover {
+            transform: translateY(2px);
+            box-shadow: 0 4px 0 #b32d43;
+            background-color: #f05a75;
+        }
+
+        .btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 0 0 #b32d43;
+        }
+
+        #health-bar {
+            color: #ff4757;
+            font-size: 24px;
+        }
+
+        #reading-modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+            text-align: center;
+            z-index: 20;
+        }
+
+        #read-word-container {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin: 20px 0 40px 0;
+        }
+
+        .read-word {
+            font-size: 80px;
+            color: #facc15;
+            font-weight: bold;
+            letter-spacing: 5px;
+            text-shadow: 4px 4px 0 #000;
+        }
+        
+        .word-counter {
+            font-size: 20px;
+            color: #94a3b8;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    
+    <div id="ui-layer">
+        <div class="hud">
+            <div>Score: <span id="score">0</span></div>
+            <div>Progress: <span id="progress">0 / 5</span></div>
+            <div id="health-bar">♥♥♥</div>
+        </div>
+        <div id="target-display" style="display: none;">
+            Find words with: <span id="target-vowel" style="color: #4ade80; font-size: 36px;">EA</span>
+        </div>
+    </div>
+
+    <div id="overlay">
+        <div id="start-screen">
+            <h1>Vowel Team Adventure</h1>
+            <p>
+                Look at the target vowel team at the top of the screen.<br>
+                Jump around and collect words that match it!<br>
+                Look out for <strong>x2</strong> and <strong>x3</strong> bonus words!
+            </p>
+            <input type="text" id="player-name" placeholder="Enter your name" autocomplete="off">
+            <br>
+            <button class="btn" id="start-btn">PLAY GAME</button>
+        </div>
+        <div id="game-over-screen" style="display:none;">
+            <h1 id="go-title">Game Over!</h1>
+            <p style="font-size: 24px; color: #fff;">Final Score: <span id="final-score" style="color: #facc15;">0</span></p>
+            <p>You did a fantastic job practicing!</p>
+            <button class="btn" id="restart-btn">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <div id="reading-modal">
+        <h2 style="color: #38bdf8; font-size: 48px; margin:0;">Great job!</h2>
+        <p style="font-size: 24px; color: #fff;">Read aloud:</p>
+        <div id="read-word-container"></div>
+        <button class="btn" id="read-btn">I Read It! (Enter)</button>
+    </div>
+</div>
+
+<script>
+    // --- Word Data ---
+    const wordLists = {
+        'EA': ['read', 'meat', 'seat', 'beak', 'leaf', 'peak', 'weak', 'team', 'dream', 'sea', 'tea', 'bean', 'clean', 'peach', 'beach', 'teach', 'reach', 'feast', 'beast', 'heap'],
+        'OA': ['boat', 'coat', 'goat', 'road', 'toad', 'soap', 'float', 'toast', 'coach', 'roast', 'boast', 'coal', 'foal', 'loaf', 'oak', 'croak', 'moat', 'coast', 'throat'],
+        'AY': ['play', 'day', 'way', 'say', 'may', 'pay', 'lay', 'ray', 'tray', 'clay', 'spray', 'stay', 'hay', 'jay', 'stray', 'gray', 'sway', 'delay', 'decay', 'okay'],
+        'AI': ['rain', 'train', 'mail', 'sail', 'tail', 'nail', 'snail', 'pail', 'brain', 'pain', 'wait', 'bait', 'chain', 'paint', 'faint', 'main', 'plain', 'stain', 'grain', 'trail'],
+        'IGH': ['high', 'sigh', 'light', 'night', 'right', 'bright', 'flight', 'tight', 'sight', 'might', 'fight', 'thigh', 'slight', 'knight', 'fright']
+    };
+    const teams = Object.keys(wordLists);
+
+    const backgrounds = [
+        'linear-gradient(to bottom, #0f3460, #1a1a2e)', // Night
+        'linear-gradient(to bottom, #1e3a8a, #06b6d4)', // Deep Sea
+        'linear-gradient(to bottom, #4c1d95, #be185d)', // Sunset
+        'linear-gradient(to bottom, #065f46, #10b981)', // Emerald Forest
+        'linear-gradient(to bottom, #7f1d1d, #f59e0b)'  // Volcano
+    ];
+    let bgIndex = 0;
+
+    // --- Audio Engine ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+
+    function initAudio() {
+        if (!audioCtx) audioCtx = new AudioContext();
+    }
+
+    function playSound(type) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+        
+        switch(type) {
+            case 'jump':
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+                break;
+            case 'coin':
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.setValueAtTime(1200, now + 0.05);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+                break;
+            case 'wrong':
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+                break;
+            case 'stomp':
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(100, now);
+                osc.frequency.exponentialRampToValueAtTime(20, now + 0.15);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+                break;
+            case 'levelup':
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.setValueAtTime(500, now + 0.1);
+                osc.frequency.setValueAtTime(600, now + 0.2);
+                osc.frequency.setValueAtTime(800, now + 0.3);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.6);
+                osc.start(now);
+                osc.stop(now + 0.6);
+                break;
+        }
+    }
+
+    // --- Game Engine Setup ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // UI Elements
+    const overlay = document.getElementById('overlay');
+    const startScreen = document.getElementById('start-screen');
+    const gameOverScreen = document.getElementById('game-over-screen');
+    const nameInput = document.getElementById('player-name');
+    
+    const scoreEl = document.getElementById('score');
+    const progressEl = document.getElementById('progress');
+    const healthEl = document.getElementById('health-bar');
+    const targetDisplay = document.getElementById('target-display');
+    const targetVowelEl = document.getElementById('target-vowel');
+
+    const readingModal = document.getElementById('reading-modal');
+    const readWordContainer = document.getElementById('read-word-container');
+    const readBtn = document.getElementById('read-btn');
+
+    // Input Handling
+    const keys = { left: false, right: false, up: false };
+    window.addEventListener('keydown', (e) => {
+        if (gameState === 'reading' && e.code === 'Enter') {
+            e.preventDefault();
+            advanceReading();
+            return;
+        }
+        
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') { keys.left = true; e.preventDefault(); }
+        if (e.code === 'ArrowRight' || e.code === 'KeyD') { keys.right = true; e.preventDefault(); }
+        if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') { 
+            keys.up = true; 
+            e.preventDefault(); 
+            initAudio();
+        }
+    });
+    window.addEventListener('keyup', (e) => {
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
+        if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
+        if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') keys.up = false;
+    });
+
+    // --- Game State & Classes ---
+    let gameState = 'menu';
+    let playerName = '';
+    let score = 0;
+    let health = 3;
+    let currentTargetTeam = 'EA';
+    let wordsCollected = 0;
+    const wordsNeeded = 5;
+    
+    // Reading multi-word state
+    let currentReadingWords = [];
+    let currentReadingIndex = 0;
+
+    // Physics Engine Constants
+    const gravity = 0.20; 
+    const friction = 0.85; 
+    const acceleration = 0.5;
+    const terminalVelocity = 6;
+    const maxSpeed = 2.8;
+
+    class Player {
+        constructor() {
+            this.w = 32;
+            this.h = 32;
+            this.x = canvas.width / 2 - this.w / 2;
+            this.y = canvas.height - 100;
+            this.vx = 0;
+            this.vy = 0;
+            this.jumpPower = -8.0; 
+            this.grounded = false;
+            this.facingRight = true;
+            this.invulnerableTimer = 0;
+        }
+
+        update() {
+            // Apply gradual acceleration
+            if (keys.left) {
+                this.vx -= acceleration;
+                this.facingRight = false;
+            }
+            if (keys.right) {
+                this.vx += acceleration;
+                this.facingRight = true;
+            }
+
+            // Apply friction
+            this.vx *= friction;
+            
+            // Hard speed cap
+            if (this.vx > maxSpeed) this.vx = maxSpeed;
+            if (this.vx < -maxSpeed) this.vx = -maxSpeed;
+
+            // Apply gravity
+            this.vy += gravity;
+            if (this.vy > terminalVelocity) this.vy = terminalVelocity;
+
+            // Jump
+            if (keys.up && this.grounded) {
+                this.vy = this.jumpPower;
+                this.grounded = false;
+                playSound('jump');
+            }
+
+            let oldX = this.x;
+            let oldY = this.y;
+
+            this.x += this.vx;
+            this.checkPlatformCollisions(oldX, oldY, true);
+
+            this.y += this.vy;
+            this.grounded = false;
+            this.checkPlatformCollisions(oldX, oldY, false);
+
+            if (this.x > canvas.width) this.x = -this.w;
+            if (this.x + this.w < 0) this.x = canvas.width;
+
+            if (this.y > canvas.height) {
+                takeDamage();
+                this.y = 0;
+                this.vy = 0;
+            }
+
+            if (this.invulnerableTimer > 0) this.invulnerableTimer--;
+        }
+
+        checkPlatformCollisions(oldX, oldY, isHorizontal) {
+            for (let plat of platforms) {
+                if (this.x < plat.x + plat.w && this.x + this.w > plat.x &&
+                    this.y < plat.y + plat.h && this.y + this.h > plat.y) {
+                    
+                    if (isHorizontal) {
+                        if (this.vx > 0) this.x = plat.x - this.w;
+                        else if (this.vx < 0) this.x = plat.x + plat.w;
+                        this.vx = 0;
+                    } else {
+                        if (this.vy > 0) {
+                            this.y = plat.y - this.h;
+                            this.vy = 0;
+                            this.grounded = true;
+                        } else if (this.vy < 0) {
+                            this.y = plat.y + plat.h;
+                            this.vy = 0;
+                        }
+                    }
+                }
+            }
+        }
+
+        draw() {
+            if (this.invulnerableTimer > 0 && Math.floor(Date.now() / 100) % 2 === 0) return;
+
+            // Creative Robot Design
+            ctx.fillStyle = '#facc15';
+            ctx.beginPath();
+            ctx.roundRect(this.x, this.y, this.w, this.h, 8);
+            ctx.fill();
+            
+            // Antenna
+            ctx.fillStyle = '#a1a1aa';
+            let antennaBob = this.grounded ? 0 : Math.sin(Date.now()/50)*2;
+            ctx.fillRect(this.x + this.w/2 - 2, this.y - 10 + antennaBob, 4, 10);
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(this.x + this.w/2, this.y - 12 + antennaBob, 4, 0, Math.PI*2);
+            ctx.fill();
+
+            // Visor
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.roundRect(this.x + (this.facingRight?10:4), this.y + 6, 18, 12, 4);
+            ctx.fill();
+            
+            // Glowing Eye
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillRect(this.x + (this.facingRight?16:8), this.y + 9, 6, 6);
+
+            // Tank Treads / Wheels
+            ctx.fillStyle = '#3f3f46';
+            ctx.beginPath();
+            ctx.roundRect(this.x + 2, this.y + this.h - 6, 10, 8, 3);
+            ctx.roundRect(this.x + this.w - 12, this.y + this.h - 6, 10, 8, 3);
+            ctx.fill();
+        }
+    }
+
+    class Platform {
+        constructor(x, y, w, h) {
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            this.color = '#10b981';
+        }
+
+        draw() {
+            ctx.fillStyle = '#064e3b';
+            ctx.fillRect(this.x, this.y, this.w, this.h);
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.x, this.y, this.w, 8);
+        }
+    }
+
+    class WordItem {
+        constructor(x, y, text, team, isTarget) {
+            this.x = x;
+            this.y = y;
+            this.w = 80;
+            this.h = 40;
+            this.text = text;
+            this.team = team;
+            this.isTarget = isTarget;
+            this.bobOffset = Math.random() * Math.PI * 2;
+            this.active = true;
+            
+            // Multiplier Logic
+            this.multiplier = 1;
+            if (isTarget) {
+                let r = Math.random();
+                if (r < 0.15) this.multiplier = 3; 
+                else if (r < 0.35) this.multiplier = 2; 
+            }
+        }
+
+        update() {
+            this.bobOffset += 0.05;
+        }
+
+        draw() {
+            if (!this.active) return;
+            
+            let currentY = this.y + Math.sin(this.bobOffset) * 5;
+
+            // Box
+            ctx.fillStyle = this.multiplier > 1 ? 'rgba(60, 40, 10, 0.9)' : 'rgba(15, 23, 42, 0.8)';
+            ctx.strokeStyle = this.multiplier > 1 ? '#facc15' : '#38bdf8';
+            ctx.lineWidth = this.multiplier > 1 ? 3 : 2;
+            ctx.beginPath();
+            ctx.roundRect(this.x, currentY, this.w, this.h, 5);
+            ctx.fill();
+            ctx.stroke();
+
+            // Text
+            ctx.fillStyle = '#fff';
+            ctx.font = '16px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(this.text, this.x + this.w/2, currentY + this.h/2);
+
+            // Multiplier Badge
+            if (this.multiplier > 1) {
+                ctx.fillStyle = '#facc15';
+                ctx.beginPath();
+                ctx.arc(this.x + this.w, currentY, 14, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = '#000';
+                ctx.font = 'bold 12px sans-serif';
+                ctx.fillText('x' + this.multiplier, this.x + this.w, currentY);
+            }
+        }
+    }
+
+    class Enemy {
+        constructor(platform) {
+            this.w = 26;
+            this.h = 22;
+            this.plat = platform;
+            this.x = platform.x + platform.w / 2;
+            this.y = platform.y - this.h;
+            this.vx = (Math.random() > 0.5 ? 1 : -1) * 0.4; // Slower enemies
+            this.color = '#e11d48'; // Spiky Slime
+            this.active = true;
+        }
+
+        update() {
+            if (!this.active) return;
+            this.x += this.vx;
+
+            if (this.x <= this.plat.x || this.x + this.w >= this.plat.x + this.plat.w) {
+                this.vx *= -1;
+            }
+
+            if (player.invulnerableTimer === 0 &&
+                player.x < this.x + this.w && player.x + player.w > this.x &&
+                player.y < this.y + this.h && player.y + player.h > this.y) {
+                
+                if (player.vy > 0 && player.y + player.h < this.y + this.h / 2) {
+                    this.active = false;
+                    player.vy = -8; // Bounce
+                    score += 50;
+                    playSound('stomp');
+                    spawnParticles(this.x + this.w/2, this.y + this.h/2, this.color);
+                    updateHUD();
+                } else {
+                    takeDamage();
+                }
+            }
+        }
+
+        draw() {
+            if (!this.active) return;
+            let bob = Math.sin(Date.now() / 120) * 3; // Squish animation
+
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y + this.h);
+            ctx.lineTo(this.x + this.w, this.y + this.h);
+            // Spikes
+            ctx.lineTo(this.x + this.w - 2, this.y + bob);
+            ctx.lineTo(this.x + this.w/2 + 4, this.y - 6 + bob);
+            ctx.lineTo(this.x + this.w/2, this.y + bob);
+            ctx.lineTo(this.x + this.w/2 - 4, this.y - 6 + bob);
+            ctx.lineTo(this.x + 2, this.y + bob);
+            ctx.fill();
+            
+            // Angry Eyes
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(this.x + 6, this.y + 6 + bob, 6, 6);
+            ctx.fillRect(this.x + 16, this.y + 6 + bob, 6, 6);
+            ctx.fillStyle = '#000';
+            let lookDir = this.vx > 0 ? 2 : 0;
+            ctx.fillRect(this.x + 8 + lookDir, this.y + 8 + bob, 2, 2);
+            ctx.fillRect(this.x + 18 + lookDir, this.y + 8 + bob, 2, 2);
+        }
+    }
+
+    class Particle {
+        constructor(x, y, color) {
+            this.x = x;
+            this.y = y;
+            this.vx = (Math.random() - 0.5) * 8;
+            this.vy = (Math.random() - 1) * 8;
+            this.life = 1.0;
+            this.color = color;
+            this.size = Math.random() * 5 + 3;
+        }
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.vy += 0.4;
+            this.life -= 0.03;
+        }
+        draw() {
+            if (this.life <= 0) return;
+            ctx.globalAlpha = this.life;
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.x, this.y, this.size, this.size);
+            ctx.globalAlpha = 1.0;
+        }
+    }
+
+    class FloatingText {
+        constructor(x, y, text, color) {
+            this.x = x;
+            this.y = y;
+            this.text = text;
+            this.color = color;
+            this.life = 1.0;
+        }
+        update() {
+            this.y -= 1;
+            this.life -= 0.02;
+        }
+        draw() {
+            if (this.life <= 0) return;
+            ctx.globalAlpha = this.life;
+            ctx.fillStyle = this.color;
+            ctx.font = 'bold 22px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(this.text, this.x, this.y);
+            ctx.globalAlpha = 1.0;
+        }
+    }
+
+    // --- Globals & Level Design ---
+    let player;
+    let platforms = [];
+    let words = [];
+    let enemies = [];
+    let particles = [];
+    let floatingTexts = [];
+    
+    const spawnPoints = [
+        {x: 100, y: 150}, {x: 400, y: 100}, {x: 650, y: 150},
+        {x: 50, y: 350}, {x: 350, y: 300}, {x: 650, y: 350},
+        {x: 150, y: 450}, {x: 550, y: 450}
+    ];
+
+    function buildLevel() {
+        platforms = [];
+        // Extend the ground past the 0 and 800 boundaries so the player doesn't slip through
+        platforms.push(new Platform(-100, 550, 1000, 50));
+        platforms.push(new Platform(150, 420, 150, 20));
+        platforms.push(new Platform(500, 420, 150, 20));
+        platforms.push(new Platform(300, 280, 200, 20));
+        platforms.push(new Platform(50, 180, 150, 20));
+        platforms.push(new Platform(600, 180, 150, 20));
+    }
+
+    function getRandomWord(team) {
+        const list = wordLists[team];
+        return list[Math.floor(Math.random() * list.length)];
+    }
+
+    function getDistractorTeam(excludeTeam) {
+        let options = teams.filter(t => t !== excludeTeam);
+        return options[Math.floor(Math.random() * options.length)];
+    }
+
+    function spawnInitialWords() {
+        words = [];
+        
+        // Filter out spawn points so a word doesn't spawn exactly where the player is standing
+        let availablePoints = spawnPoints.filter(pt => {
+            if (!player) return true;
+            let isPlayerNear = (player.x < pt.x + 80 + 30 && player.x + player.w > pt.x - 30 &&
+                                player.y < pt.y + 40 + 30 && player.y + player.h > pt.y - 30);
+            return !isPlayerNear;
+        });
+        
+        for (let i = 0; i < 6; i++) {
+            if (availablePoints.length === 0) break;
+            let ptIndex = Math.floor(Math.random() * availablePoints.length);
+            let pt = availablePoints.splice(ptIndex, 1)[0];
+            let isTarget = (i < 3); 
+            let team = isTarget ? currentTargetTeam : getDistractorTeam(currentTargetTeam);
+            let text = getRandomWord(team);
+            words.push(new WordItem(pt.x, pt.y, text, team, isTarget));
+        }
+    }
+
+    function spawnSingleWord() {
+        let emptyPoints = spawnPoints.filter(pt => {
+            let isOccupied = words.some(w => Math.abs(w.x - pt.x) < 50 && Math.abs(w.y - pt.y) < 50);
+            let isPlayerNear = false;
+            if (player) {
+                isPlayerNear = (player.x < pt.x + 80 + 30 && player.x + player.w > pt.x - 30 &&
+                                player.y < pt.y + 40 + 30 && player.y + player.h > pt.y - 30);
+            }
+            return !isOccupied && !isPlayerNear;
+        });
+        
+        if (emptyPoints.length > 0) {
+            let pt = emptyPoints[Math.floor(Math.random() * emptyPoints.length)];
+            let targetCount = words.filter(w => w.isTarget).length;
+            let isTarget = (targetCount < 2) || (Math.random() < 0.4);
+            let team = isTarget ? currentTargetTeam : getDistractorTeam(currentTargetTeam);
+            let text = getRandomWord(team);
+            words.push(new WordItem(pt.x, pt.y, text, team, isTarget));
+        }
+    }
+
+    function spawnEnemies() {
+        enemies = [];
+        let availablePlats = platforms.slice(1); 
+        for(let i=0; i<2; i++) {
+            let plat = availablePlats[Math.floor(Math.random()*availablePlats.length)];
+            enemies.push(new Enemy(plat));
+        }
+    }
+
+    function spawnParticles(x, y, color) {
+        for (let i = 0; i < 15; i++) {
+            particles.push(new Particle(x, y, color));
+        }
+    }
+
+    function takeDamage() {
+        if (player.invulnerableTimer > 0) return;
+        health--;
+        playSound('wrong');
+        player.vy = -6; 
+        player.vx = (player.facingRight ? -6 : 6);
+        player.invulnerableTimer = 180; // 3 seconds invincibility
+        
+        document.getElementById('game-container').style.transform = 'translate(10px, 10px)';
+        setTimeout(() => document.getElementById('game-container').style.transform = 'translate(-10px, -10px)', 50);
+        setTimeout(() => document.getElementById('game-container').style.transform = 'translate(10px, -10px)', 100);
+        setTimeout(() => document.getElementById('game-container').style.transform = 'translate(0, 0)', 150);
+
+        updateHUD();
+        if (health <= 0) {
+            gameOver();
+        }
+    }
+
+    function cycleTargetTeam() {
+        let currentIndex = teams.indexOf(currentTargetTeam);
+        currentTargetTeam = teams[(currentIndex + 1) % teams.length];
+        wordsCollected = 0;
+        
+        // Background change
+        bgIndex = (bgIndex + 1) % backgrounds.length;
+        document.getElementById('game-container').style.background = backgrounds[bgIndex];
+
+        playSound('levelup');
+        targetVowelEl.innerText = currentTargetTeam;
+        targetVowelEl.classList.add('pulse');
+        setTimeout(() => targetVowelEl.classList.remove('pulse'), 300);
+
+        spawnInitialWords();
+        
+        if(enemies.length < 4) {
+             let availablePlats = platforms.slice(1);
+             enemies.push(new Enemy(availablePlats[Math.floor(Math.random()*availablePlats.length)]));
+        }
+
+        updateHUD();
+    }
+
+    function updateHUD() {
+        scoreEl.innerText = score;
+        progressEl.innerText = `${wordsCollected} / ${wordsNeeded}`;
+        
+        let hearts = '';
+        for (let i = 0; i < 3; i++) {
+            hearts += i < health ? '♥' : '♡';
+        }
+        healthEl.innerText = hearts;
+    }
+    
+    function renderCurrentReadingWord() {
+        let html = `<div class="read-word">${currentReadingWords[currentReadingIndex]}</div>`;
+        if (currentReadingWords.length > 1) {
+            html += `<div class="word-counter">Word ${currentReadingIndex + 1} of ${currentReadingWords.length}</div>`;
+        }
+        readWordContainer.innerHTML = html;
+        readingModal.style.display = 'flex';
+    }
+
+    function checkWordCollisions() {
+        for (let i = words.length - 1; i >= 0; i--) {
+            let w = words[i];
+            if (!w.active) continue;
+
+            if (player.x < w.x + w.w && player.x + player.w > w.x &&
+                player.y < w.y + w.h && player.y + player.h > w.y) {
+                
+                w.active = false;
+                words.splice(i, 1);
+
+                if (w.isTarget) {
+                    playSound('coin');
+                    
+                    let mult = w.multiplier;
+                    let earnedPoints = 100 * mult;
+                    score += earnedPoints;
+                    wordsCollected += mult; // Multiplier advances progress faster!
+                    
+                    spawnParticles(w.x + w.w/2, w.y + w.h/2, mult > 1 ? '#facc15' : '#38bdf8');
+                    floatingTexts.push(new FloatingText(w.x + w.w/2, w.y, `+${earnedPoints}`, "#4ade80"));
+                    
+                    updateHUD();
+
+                    // Setup reading modal for multiple words
+                    gameState = 'reading';
+                    currentReadingWords = [w.text];
+                    for(let k = 1; k < mult; k++) {
+                        currentReadingWords.push(getRandomWord(currentTargetTeam));
+                    }
+                    currentReadingIndex = 0;
+                    
+                    renderCurrentReadingWord();
+                } else {
+                    takeDamage();
+                    floatingTexts.push(new FloatingText(w.x + w.w/2, w.y, "Oops!", "#ff4757"));
+                    spawnSingleWord();
+                }
+            }
+        }
+    }
+
+    function advanceReading() {
+        if (gameState !== 'reading') return;
+        
+        currentReadingIndex++;
+        if (currentReadingIndex < currentReadingWords.length) {
+            // Show the next word
+            renderCurrentReadingWord();
+        } else {
+            // Finished reading all words
+            readingModal.style.display = 'none';
+            gameState = 'playing';
+            keys.left = keys.right = keys.up = false; 
+            player.invulnerableTimer = 180; // 3 seconds of invincibility when resuming
+
+            if (wordsCollected >= wordsNeeded) {
+                cycleTargetTeam();
+            } else {
+                spawnSingleWord();
+            }
+        }
+    }
+
+    // --- Main Game Loops ---
+    function initGame() {
+        let inputName = nameInput.value.trim();
+        playerName = inputName !== '' ? inputName : 'Friend';
+
+        initAudio();
+        player = new Player();
+        score = 0;
+        health = 3;
+        wordsCollected = 0;
+        currentTargetTeam = 'EA';
+        targetVowelEl.innerText = currentTargetTeam;
+        particles = [];
+        floatingTexts = [];
+        bgIndex = Math.floor(Math.random() * backgrounds.length); // Randomize starting background
+        document.getElementById('game-container').style.background = backgrounds[bgIndex];
+        
+        buildLevel();
+        spawnInitialWords();
+        spawnEnemies();
+        updateHUD();
+        
+        gameState = 'playing';
+        overlay.style.display = 'none';
+        startScreen.style.display = 'none';
+        gameOverScreen.style.display = 'none';
+        readingModal.style.display = 'none';
+        targetDisplay.style.display = 'block';
+    }
+
+    function gameOver() {
+        gameState = 'gameover';
+        targetDisplay.style.display = 'none';
+        
+        document.getElementById('go-title').innerText = `Great Try, ${playerName}!`;
+        document.getElementById('final-score').innerText = score;
+        
+        overlay.style.display = 'flex';
+        gameOverScreen.style.display = 'block';
+    }
+
+    function update() {
+        if (gameState !== 'playing') return;
+
+        player.update();
+        
+        for (let enemy of enemies) enemy.update();
+        for (let word of words) word.update();
+        
+        checkWordCollisions();
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+            particles[i].update();
+            if (particles[i].life <= 0) particles.splice(i, 1);
+        }
+        for (let i = floatingTexts.length - 1; i >= 0; i--) {
+            floatingTexts[i].update();
+            if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1);
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (gameState !== 'playing') return;
+
+        ctx.fillStyle = '#ffffff';
+        for(let i=0; i<20; i++){
+            let sx = (Math.sin(i*123) * 0.5 + 0.5) * canvas.width;
+            let sy = (Math.cos(i*321) * 0.5 + 0.5) * canvas.height;
+            ctx.fillRect(sx, sy, 2, 2);
+        }
+
+        for (let plat of platforms) plat.draw();
+        for (let enemy of enemies) enemy.draw();
+        for (let word of words) word.draw();
+        player.draw();
+        
+        for (let p of particles) p.draw();
+        for (let ft of floatingTexts) ft.draw();
+    }
+
+    function loop() {
+        requestAnimationFrame(loop);
+        update();
+        draw();
+    }
+
+    // Event Listeners
+    document.getElementById('start-btn').addEventListener('click', initGame);
+    document.getElementById('restart-btn').addEventListener('click', () => {
+        gameOverScreen.style.display = 'none';
+        startScreen.style.display = 'block';
+    });
+
+    readBtn.addEventListener('click', advanceReading);
+
+    requestAnimationFrame(loop);
+
+</script>
+</body>
+</html>
