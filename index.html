@@ -1002,8 +1002,8 @@
             if (player.x < w.x + w.w && player.x + player.w > w.x &&
                 player.y < w.y + w.h && player.y + player.h > w.y) {
                 
-                // If player is invincible, IGNORE wrong words completely!
-                if (!w.isTarget && player.invulnerableTimer > 0) {
+                // If player is invincible, IGNORE ALL words completely!
+                if (player.invulnerableTimer > 0) {
                     // Gently push floating words away so they don't hover on the player
                     if (w.isFloating) {
                         w.vx = (w.x + w.w/2 > player.x + player.w/2) ? 1.5 : -1.5;
