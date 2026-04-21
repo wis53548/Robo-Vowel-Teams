@@ -88,6 +88,16 @@
             z-index: 10;
         }
 
+        /* Common class for all menu screens to fix flex layout issues */
+        .screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
         h1 {
             color: #4ade80;
             font-size: 48px;
@@ -205,6 +215,123 @@
             color: #94a3b8;
             margin-top: 10px;
         }
+
+        .hud-btn {
+            padding: 5px 15px;
+            font-size: 16px;
+            margin-left: 10px;
+            border: 2px solid #fff;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            pointer-events: auto; 
+            transition: background-color 0.2s;
+        }
+        #store-btn { background-color: #f59e0b; }
+        #store-btn:hover { background-color: #fbbf24; }
+        #menu-btn { background-color: #ef4444; }
+        #menu-btn:hover { background-color: #f87171; }
+
+        #store-modal {
+            position: absolute;
+            top: 50px;
+            left: 50px;
+            width: 700px;
+            height: 500px;
+            background: rgba(15, 23, 42, 0.95);
+            border: 4px solid #38bdf8;
+            border-radius: 15px;
+            display: none;
+            flex-direction: column;
+            padding: 20px;
+            z-index: 30;
+            color: white;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        .store-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .store-header h2 { margin: 0; color: #facc15; font-size: 32px; }
+        
+        .store-category {
+            margin-bottom: 25px;
+        }
+
+        .store-category h3 {
+            margin: 0 0 10px 0;
+            color: #4ade80;
+            border-bottom: 1px dashed #334155;
+            padding-bottom: 5px;
+        }
+
+        .store-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .shop-item {
+            background: #1e293b;
+            border: 2px solid #475569;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.1s, border-color 0.1s;
+        }
+
+        .shop-item:hover { transform: translateY(-2px); border-color: #38bdf8; }
+        .shop-item.owned { border-color: #4ade80; }
+        .shop-item.equipped { border-color: #facc15; background: #334155; box-shadow: 0 0 10px rgba(250, 204, 21, 0.5); }
+        .shop-item .price { color: #facc15; font-weight: bold; margin-top: 5px; }
+
+        /* Leaderboard Styles */
+        .leaderboard-box {
+            background: rgba(15, 23, 42, 0.95);
+            border: 3px solid #38bdf8;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0 25px 0;
+            width: 380px;
+            max-height: 250px;
+            overflow-y: auto;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+        }
+        .leaderboard-box h3 { 
+            margin: 0 0 15px 0; 
+            color: #4ade80; 
+            font-size: 22px; 
+            text-align: center; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+        }
+        .leaderboard-list { 
+            list-style: none; 
+            padding: 0; 
+            margin: 0; 
+            font-size: 18px; 
+            text-align: left; 
+        }
+        .leaderboard-list li { 
+            display: flex; 
+            justify-content: space-between; 
+            padding: 8px 10px; 
+            border-bottom: 1px solid #334155; 
+            align-items: center;
+        }
+        .leaderboard-list li:last-child { border-bottom: none; }
+        .leaderboard-list .lb-rank { color: #94a3b8; font-size: 16px; margin-right: 10px; width: 25px; display: inline-block;}
+        .leaderboard-list .lb-name { color: #fff; flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .leaderboard-list .lb-score { color: #facc15; font-weight: bold; font-family: monospace; font-size: 20px;}
     </style>
 </head>
 <body>
@@ -214,7 +341,11 @@
     
     <div id="ui-layer">
         <div class="hud">
-            <div>Score: <span id="score">0</span></div>
+            <div>
+                Score: <span id="score">0</span> 
+                <button id="store-btn" class="hud-btn">SHOP</button>
+                <button id="menu-btn" class="hud-btn">MENU</button>
+            </div>
             <div>Progress: <span id="progress">0 / 5</span></div>
             <div id="health-bar">♥♥♥</div>
         </div>
@@ -224,7 +355,8 @@
     </div>
 
     <div id="overlay">
-        <div id="start-screen">
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen">
             <h1>Vowel Team Adventure</h1>
             <p>
                 Look at the target vowel team at the top of the screen.<br>
@@ -241,41 +373,171 @@
                 </select>
             </div>
             
-            <br>
-            <button class="btn" id="start-btn">PLAY GAME</button>
+            <div style="display: flex; gap: 20px; margin-top: 10px;">
+                <button class="btn" id="start-btn">PLAY GAME</button>
+                <button class="btn" id="open-leaderboard-btn" style="background-color: #3b82f6; box-shadow: 0 6px 0 #1d4ed8;">SCORES</button>
+            </div>
         </div>
         
-        <div id="intermission-screen" style="display:none;">
+        <!-- Scoreboard Screen (Accessible from Main Menu) -->
+        <div id="leaderboard-screen" class="screen" style="display:none;">
+            <h1 style="color: #38bdf8; margin-bottom: 5px;">Hall of Fame</h1>
+            <div class="leaderboard-box">
+                <h3>Top 10 High Scores</h3>
+                <ul class="leaderboard-list" id="main-leaderboard-list">
+                    <li>Loading...</li>
+                </ul>
+            </div>
+            <button class="btn" id="close-leaderboard-btn">BACK TO MENU</button>
+        </div>
+
+        <!-- Intermission Screen -->
+        <div id="intermission-screen" class="screen" style="display:none;">
             <h1 style="color: #a855f7;">LEVEL 2: SPACE VOWELS!</h1>
             <p style="font-size: 24px; color: #fff;">You mastered the Earth level!</p>
             <p>Get ready for low gravity, moving platforms, and floating words!</p>
             <button class="btn" style="background-color: #a855f7; box-shadow: 0 6px 0 #7e22ce;" id="level2-btn">LAUNCH TO SPACE</button>
         </div>
 
-        <div id="win-screen" style="display:none;">
+        <!-- Win Screen -->
+        <div id="win-screen" class="screen" style="display:none;">
             <h1 id="win-title" style="color: #facc15;">You Did It!</h1>
-            <p style="font-size: 24px; color: #fff;">Final Score: <span id="win-score" style="color: #facc15;">0</span></p>
-            <p>You mastered EVERY vowel team in the galaxy!</p>
+            <p style="font-size: 24px; color: #fff; margin-bottom: 0;">Final Score: <span id="win-score" style="color: #facc15;">0</span></p>
+            
+            <div class="leaderboard-box">
+                <h3>Top 10 High Scores</h3>
+                <ul class="leaderboard-list" id="win-leaderboard-list">
+                    <li>Loading...</li>
+                </ul>
+            </div>
+
+            <p style="margin-bottom: 15px;">You mastered EVERY vowel team in the galaxy!</p>
             <button class="btn" id="win-restart-btn">PLAY AGAIN</button>
         </div>
 
-        <div id="game-over-screen" style="display:none;">
+        <!-- Game Over Screen -->
+        <div id="game-over-screen" class="screen" style="display:none;">
             <h1 id="go-title">Game Over!</h1>
-            <p style="font-size: 24px; color: #fff;">Final Score: <span id="final-score" style="color: #facc15;">0</span></p>
-            <p>You did a fantastic job practicing!</p>
+            <p style="font-size: 24px; color: #fff; margin-bottom: 0;">Final Score: <span id="final-score" style="color: #facc15;">0</span></p>
+            
+            <div class="leaderboard-box">
+                <h3>Top 10 High Scores</h3>
+                <ul class="leaderboard-list" id="go-leaderboard-list">
+                    <li>Loading...</li>
+                </ul>
+            </div>
+
+            <p style="margin-bottom: 15px;">You did a fantastic job practicing!</p>
             <button class="btn" id="restart-btn">PLAY AGAIN</button>
         </div>
     </div>
 
+    <!-- Reading Overlay Modal -->
     <div id="reading-modal">
         <h2 style="color: #38bdf8; font-size: 48px; margin:0;">Great job!</h2>
         <p style="font-size: 24px; color: #fff;">Read aloud:</p>
         <div id="read-word-container"></div>
         <button class="btn" id="read-btn">I Read It! (Enter)</button>
     </div>
+
+    <!-- Shop Overlay Modal -->
+    <div id="store-modal">
+        <div class="store-header">
+            <h2>Robot Upgrade Shop</h2>
+            <div style="font-size: 24px;">Points: <span id="shop-points" style="color:#facc15;">0</span></div>
+            <button class="btn" id="close-store-btn" style="padding: 5px 15px; font-size: 18px; background-color: #ef4444;">CLOSE</button>
+        </div>
+        <div id="store-content"></div>
+    </div>
 </div>
 
-<script>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // --- Firebase & Leaderboard Setup ---
+    let db, auth, currentUser;
+    let appId = typeof __app_id !== 'undefined' ? __app_id : 'phonics-game-local';
+    let globalHighScores = [];
+
+    async function initFirebase() {
+        if (typeof __firebase_config !== 'undefined') {
+            const firebaseConfig = JSON.parse(__firebase_config);
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            const initAuth = async () => {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            };
+            await initAuth();
+
+            onAuthStateChanged(auth, (user) => {
+                currentUser = user;
+                if (user) fetchHighScores();
+            });
+        } else {
+            // Local Offline Fallback if run from Notepad!
+            fetchHighScoresLocal();
+        }
+    }
+    
+    function renderLeaderboards() {
+        const listHtml = globalHighScores.length > 0 
+            ? globalHighScores.map((s, i) => `<li><span class="lb-rank">${i+1}.</span><span class="lb-name">${s.name}</span><span class="lb-score">${s.score}</span></li>`).join('')
+            : `<li><span style="color:#94a3b8; text-align:center; width:100%;">No scores yet!</span></li>`;
+        
+        document.getElementById('go-leaderboard-list').innerHTML = listHtml;
+        document.getElementById('win-leaderboard-list').innerHTML = listHtml;
+        document.getElementById('main-leaderboard-list').innerHTML = listHtml;
+    }
+
+    function fetchHighScores() {
+        if (!db || !currentUser) return;
+        const scoresRef = collection(db, 'artifacts', appId, 'public', 'data', 'highscores');
+        onSnapshot(scoresRef, (snapshot) => {
+            let scores = [];
+            snapshot.forEach(doc => scores.push(doc.data()));
+            scores.sort((a, b) => b.score - a.score);
+            globalHighScores = scores.slice(0, 10);
+            renderLeaderboards();
+        }, (err) => console.error("Error syncing scores", err));
+    }
+
+    function fetchHighScoresLocal() {
+        try {
+            let localScores = JSON.parse(localStorage.getItem('vowelTeamHighScores') || '[]');
+            localScores.sort((a, b) => b.score - a.score);
+            globalHighScores = localScores.slice(0, 10);
+            renderLeaderboards();
+        } catch(e) { console.warn("Local storage unavailable."); }
+    }
+
+    function saveHighScore(name, finalScore) {
+        if (!name || name.toLowerCase() === 'admin' || finalScore <= 0) return;
+
+        if (db && currentUser) {
+            const scoresRef = collection(db, 'artifacts', appId, 'public', 'data', 'highscores');
+            addDoc(scoresRef, { name: name, score: finalScore, timestamp: Date.now() });
+        } else {
+            try {
+                let localScores = JSON.parse(localStorage.getItem('vowelTeamHighScores') || '[]');
+                localScores.push({ name: name, score: finalScore, timestamp: Date.now() });
+                localStorage.setItem('vowelTeamHighScores', JSON.stringify(localScores));
+                fetchHighScoresLocal();
+            } catch(e) {}
+        }
+    }
+
+    // Initialize Save System
+    initFirebase();
+
+
     // --- Word Data ---
     const wordLists = {
         'EA': ['read', 'meat', 'seat', 'beak', 'leaf', 'peak', 'weak', 'team', 'dream', 'sea', 'tea', 'bean', 'clean', 'peach', 'beach', 'teach', 'reach', 'feast', 'beast', 'heap'],
@@ -370,6 +632,7 @@
     // UI Elements
     const overlay = document.getElementById('overlay');
     const startScreen = document.getElementById('start-screen');
+    const leaderboardScreen = document.getElementById('leaderboard-screen');
     const intermissionScreen = document.getElementById('intermission-screen');
     const winScreen = document.getElementById('win-screen');
     const gameOverScreen = document.getElementById('game-over-screen');
@@ -384,6 +647,66 @@
     const readingModal = document.getElementById('reading-modal');
     const readWordContainer = document.getElementById('read-word-container');
     const readBtn = document.getElementById('read-btn');
+
+    // Store & Menu UI Elements
+    const storeBtn = document.getElementById('store-btn');
+    const menuBtn = document.getElementById('menu-btn');
+    const storeModal = document.getElementById('store-modal');
+    const closeStoreBtn = document.getElementById('close-store-btn');
+    const storeContent = document.getElementById('store-content');
+    const shopPoints = document.getElementById('shop-points');
+
+    // Store Data
+    const shopItems = {
+        colors: [
+            { id: '#facc15', name: 'Yellow Paint', cost: 0, default: true },
+            { id: '#ef4444', name: 'Red Paint', cost: 500 },
+            { id: '#3b82f6', name: 'Blue Paint', cost: 500 },
+            { id: '#10b981', name: 'Green Paint', cost: 500 },
+            { id: '#d946ef', name: 'Pink Paint', cost: 500 }
+        ],
+        tops: [
+            { id: 'ball', name: 'Red Ball', cost: 0, default: true },
+            { id: 'star', name: 'Star Antenna', cost: 800 },
+            { id: 'propeller', name: 'Propeller Cap', cost: 1200 },
+            { id: 'crown', name: 'Gold Crown', cost: 2000 }
+        ],
+        eyes: [
+            { id: 'square', name: 'Standard Visor', cost: 0, default: true },
+            { id: 'laser', name: 'Laser Eye', cost: 1000 },
+            { id: 'sunglasses', name: 'Cool Shades', cost: 1500 }
+        ],
+        wheels: [
+            { id: 'treads', name: 'Tank Treads', cost: 0, default: true },
+            { id: 'round', name: 'Monster Tires', cost: 1000 },
+            { id: 'hover', name: 'Hover Pads', cost: 2000 }
+        ]
+    };
+
+    let unlocks = {
+        colors: ['#facc15'],
+        tops: ['ball'],
+        eyes: ['square'],
+        wheels: ['treads']
+    };
+
+    let equipped = {
+        colors: '#facc15',
+        tops: 'ball',
+        eyes: 'square',
+        wheels: 'treads'
+    };
+
+    function updateBackground() {
+        const container = document.getElementById('game-container');
+        if (currentLevel === 1) {
+            container.style.background = backgrounds[bgIndex];
+        } else {
+            container.style.background = '#020617';
+        }
+        container.style.backgroundSize = '';
+        container.style.backgroundPosition = '';
+    }
 
     // Admin Cheat Listener
     nameInput.addEventListener('input', (e) => {
@@ -440,13 +763,13 @@
     let currentReadingWords = [];
     let currentReadingIndex = 0;
 
-    // Physics Engine Variables
-    let gravity = 0.20; 
+    // Physics Engine Variables (Locked to the slower, weightier physics!)
+    let gravity = 0.15; 
     let friction = 0.85; 
-    let acceleration = 0.5;
+    let acceleration = 0.4;
     let terminalVelocity = 6;
-    let maxSpeed = 2.8;
-    let playerJumpPower = -8.0; 
+    let maxSpeed = 2.4;
+    let playerJumpPower = -7.0; 
 
     class Player {
         constructor() {
@@ -541,33 +864,110 @@
         draw() {
             if (this.invulnerableTimer > 0 && Math.floor(Date.now() / 100) % 2 === 0) return;
 
-            // Creative Robot Design
-            ctx.fillStyle = '#facc15';
+            // Base Body
+            ctx.fillStyle = equipped.colors;
             ctx.beginPath();
             ctx.roundRect(this.x, this.y, this.w, this.h, 8);
             ctx.fill();
             
-            ctx.fillStyle = '#a1a1aa';
+            // Top/Antenna
             let antennaBob = this.grounded ? 0 : Math.sin(Date.now()/50)*2;
-            ctx.fillRect(this.x + this.w/2 - 2, this.y - 10 + antennaBob, 4, 10);
-            ctx.fillStyle = '#ef4444';
-            ctx.beginPath();
-            ctx.arc(this.x + this.w/2, this.y - 12 + antennaBob, 4, 0, Math.PI*2);
-            ctx.fill();
-
-            ctx.fillStyle = '#1e293b';
-            ctx.beginPath();
-            ctx.roundRect(this.x + (this.facingRight?10:4), this.y + 6, 18, 12, 4);
-            ctx.fill();
             
-            ctx.fillStyle = '#38bdf8';
-            ctx.fillRect(this.x + (this.facingRight?16:8), this.y + 9, 6, 6);
+            if (equipped.tops === 'ball') {
+                ctx.fillStyle = '#a1a1aa';
+                ctx.fillRect(this.x + this.w/2 - 2, this.y - 10 + antennaBob, 4, 10);
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath();
+                ctx.arc(this.x + this.w/2, this.y - 12 + antennaBob, 4, 0, Math.PI*2);
+                ctx.fill();
+            } else if (equipped.tops === 'star') {
+                ctx.fillStyle = '#a1a1aa';
+                ctx.fillRect(this.x + this.w/2 - 2, this.y - 10 + antennaBob, 4, 10);
+                ctx.fillStyle = '#facc15';
+                ctx.beginPath();
+                let cx = this.x + this.w/2; let cy = this.y - 14 + antennaBob;
+                ctx.moveTo(cx, cy - 6); ctx.lineTo(cx + 2, cy - 2); ctx.lineTo(cx + 6, cy - 2);
+                ctx.lineTo(cx + 3, cy + 1); ctx.lineTo(cx + 4, cy + 6); ctx.lineTo(cx, cy + 3);
+                ctx.lineTo(cx - 4, cy + 6); ctx.lineTo(cx - 3, cy + 1); ctx.lineTo(cx - 6, cy - 2);
+                ctx.lineTo(cx - 2, cy - 2); ctx.closePath();
+                ctx.fill();
+            } else if (equipped.tops === 'propeller') {
+                ctx.fillStyle = '#ef4444'; // Cap base
+                ctx.beginPath();
+                ctx.arc(this.x + this.w/2, this.y + antennaBob, 10, Math.PI, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = '#cbd5e1'; // Spinning blades
+                let bladeWidth = Math.abs(Math.cos(Date.now() / 80)) * 16 + 4;
+                ctx.fillRect(this.x + this.w/2 - bladeWidth/2, this.y - 8 + antennaBob, bladeWidth, 3);
+                ctx.fillStyle = '#64748b'; // Center peg
+                ctx.fillRect(this.x + this.w/2 - 2, this.y - 10 + antennaBob, 4, 4);
+            } else if (equipped.tops === 'crown') {
+                ctx.fillStyle = '#fbbf24';
+                ctx.beginPath();
+                let cy = this.y + antennaBob;
+                ctx.moveTo(this.x + 4, cy + 2);
+                ctx.lineTo(this.x + 4, cy - 8); ctx.lineTo(this.x + 12, cy - 2);
+                ctx.lineTo(this.x + 16, cy - 10); ctx.lineTo(this.x + 20, cy - 2);
+                ctx.lineTo(this.x + 28, cy - 8); ctx.lineTo(this.x + 28, cy + 2);
+                ctx.fill();
+            }
 
-            ctx.fillStyle = '#3f3f46';
-            ctx.beginPath();
-            ctx.roundRect(this.x + 2, this.y + this.h - 6, 10, 8, 3);
-            ctx.roundRect(this.x + this.w - 12, this.y + this.h - 6, 10, 8, 3);
-            ctx.fill();
+            // Visor / Eyes
+            if (equipped.eyes === 'sunglasses') {
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                let dx = this.facingRight ? 8 : 4;
+                ctx.roundRect(this.x + dx, this.y + 6, 20, 10, 3);
+                ctx.fill();
+                ctx.fillRect(this.x + dx - 4, this.y + 8, 4, 2); // Bridge
+                ctx.fillRect(this.x + dx + 20, this.y + 8, 4, 2);
+            } else {
+                ctx.fillStyle = '#1e293b';
+                ctx.beginPath();
+                ctx.roundRect(this.x + (this.facingRight?10:4), this.y + 6, 18, 12, 4);
+                ctx.fill();
+                
+                if (equipped.eyes === 'laser') {
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fillRect(this.x + (this.facingRight?12:6), this.y + 11, 14, 3);
+                    ctx.fillStyle = '#fca5a5'; // Glow
+                    ctx.fillRect(this.x + (this.facingRight?20:10), this.y + 11, 4, 3);
+                } else {
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.fillRect(this.x + (this.facingRight?16:8), this.y + 9, 6, 6);
+                }
+            }
+
+            // Wheels/Movement
+            if (equipped.wheels === 'round') {
+                ctx.fillStyle = '#1e293b';
+                ctx.beginPath();
+                ctx.arc(this.x + 8, this.y + this.h - 2, 6, 0, Math.PI*2);
+                ctx.arc(this.x + this.w - 8, this.y + this.h - 2, 6, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = '#cbd5e1';
+                ctx.beginPath();
+                ctx.arc(this.x + 8, this.y + this.h - 2, 2, 0, Math.PI*2);
+                ctx.arc(this.x + this.w - 8, this.y + this.h - 2, 2, 0, Math.PI*2);
+                ctx.fill();
+            } else if (equipped.wheels === 'hover') {
+                ctx.fillStyle = '#38bdf8';
+                ctx.globalAlpha = 0.6 + Math.sin(Date.now()/100)*0.3;
+                ctx.beginPath();
+                ctx.ellipse(this.x + 8, this.y + this.h, 8, 3, 0, 0, Math.PI*2);
+                ctx.ellipse(this.x + this.w - 8, this.y + this.h, 8, 3, 0, 0, Math.PI*2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+                ctx.fillStyle = '#475569';
+                ctx.fillRect(this.x + 2, this.y + this.h - 4, 12, 4);
+                ctx.fillRect(this.x + this.w - 14, this.y + this.h - 4, 12, 4);
+            } else {
+                ctx.fillStyle = '#3f3f46';
+                ctx.beginPath();
+                ctx.roundRect(this.x + 2, this.y + this.h - 6, 10, 8, 3);
+                ctx.roundRect(this.x + this.w - 12, this.y + this.h - 6, 10, 8, 3);
+                ctx.fill();
+            }
 
             if (currentLevel === 2) {
                 ctx.fillStyle = 'rgba(167, 243, 208, 0.3)';
@@ -923,8 +1323,10 @@
         if (player.invulnerableTimer > 0) return;
         health--;
         playSound('wrong');
-        player.vy = -6; 
-        player.vx = (player.facingRight ? -6 : 6);
+        
+        // Slightly reduced knockback speed so you don't fly off the map
+        player.vy = -5; 
+        player.vx = (player.facingRight ? -4 : 4);
         player.invulnerableTimer = 180; 
         
         document.getElementById('game-container').style.transform = 'translate(10px, 10px)';
@@ -956,7 +1358,7 @@
         
         if (currentLevel === 1) {
             bgIndex = (bgIndex + 1) % backgrounds.length;
-            document.getElementById('game-container').style.background = backgrounds[bgIndex];
+            updateBackground();
         }
 
         playSound('levelup');
@@ -985,6 +1387,79 @@
         healthEl.innerText = hearts;
     }
     
+    // --- Store Logic ---
+    function openStore() {
+        if (gameState !== 'playing' && gameState !== 'intermission') return;
+        gameState = 'store';
+        shopPoints.innerText = score;
+        renderStore();
+        storeModal.style.display = 'flex';
+        overlay.style.display = 'flex'; 
+        overlay.style.backgroundColor = 'rgba(0,0,0,0.5)'; 
+    }
+
+    function closeStore() {
+        if (gameState !== 'store') return;
+        gameState = 'playing';
+        storeModal.style.display = 'none';
+        overlay.style.display = 'none';
+        overlay.style.backgroundColor = 'rgba(0,0,0,0.85)'; 
+        keys.left = keys.right = keys.up = false; 
+    }
+
+    function renderStore() {
+        let html = '';
+        for (let category in shopItems) {
+            let catTitle = category.charAt(0).toUpperCase() + category.slice(1);
+            html += `<div class="store-category"><h3>${catTitle}</h3><div class="store-grid">`;
+            
+            shopItems[category].forEach(item => {
+                let isUnlocked = unlocks[category].includes(item.id);
+                let isEquipped = equipped[category] === item.id;
+                
+                let classes = 'shop-item';
+                if (isEquipped) classes += ' equipped';
+                else if (isUnlocked) classes += ' owned';
+
+                let status = isEquipped ? 'Equipped' : (isUnlocked ? 'Equip' : `${item.cost} pts`);
+                
+                html += `
+                    <div class="${classes}" onclick="window.handleShopClick('${category}', '${item.id}')">
+                        <div>${item.name}</div>
+                        <div class="price">${status}</div>
+                    </div>
+                `;
+            });
+            html += `</div></div>`;
+        }
+        storeContent.innerHTML = html;
+        shopPoints.innerText = score;
+    }
+
+    window.handleShopClick = function(category, itemId) {
+        let isUnlocked = unlocks[category].includes(itemId);
+        
+        if (isUnlocked) {
+            // Equip
+            equipped[category] = itemId;
+            playSound('jump');
+            renderStore();
+        } else {
+            // Buy
+            let item = shopItems[category].find(i => i.id === itemId);
+            if (score >= item.cost) {
+                score -= item.cost;
+                unlocks[category].push(itemId);
+                equipped[category] = itemId; // Auto equip
+                playSound('coin');
+                updateHUD();
+                renderStore();
+            } else {
+                playSound('wrong');
+            }
+        }
+    };
+
     function renderCurrentReadingWord() {
         let html = `<div class="read-word">${currentReadingWords[currentReadingIndex]}</div>`;
         if (currentReadingWords.length > 1) {
@@ -1074,6 +1549,10 @@
         score = 0;
         health = 3;
 
+        if (playerName.toLowerCase() === 'admin') {
+            score = 999999; // ADMIN INFINITE MONEY CHEAT!
+        }
+
         // Admin Cheat Level Check
         if (playerName.toLowerCase() === 'admin' && document.getElementById('level-select').value === '2') {
             startLevelTwo();
@@ -1081,10 +1560,10 @@
         }
 
         currentLevel = 1;
-        gravity = 0.20; 
-        playerJumpPower = -8.0; 
-        maxSpeed = 2.8;
-        acceleration = 0.5;
+        gravity = 0.15; 
+        playerJumpPower = -7.0; 
+        maxSpeed = 2.4;
+        acceleration = 0.4;
         
         teamsCompletedThisLevel = 0;
         currentTargetTeamIndex = 0;
@@ -1097,7 +1576,7 @@
         floatingTexts = [];
         
         bgIndex = Math.floor(Math.random() * backgrounds.length); 
-        document.getElementById('game-container').style.background = backgrounds[bgIndex];
+        updateBackground();
         
         buildLevel();
         spawnInitialWords();
@@ -1106,11 +1585,16 @@
         
         gameState = 'playing';
         overlay.style.display = 'none';
+        
+        // Hide all screens
         startScreen.style.display = 'none';
         gameOverScreen.style.display = 'none';
         winScreen.style.display = 'none';
         intermissionScreen.style.display = 'none';
+        leaderboardScreen.style.display = 'none';
         readingModal.style.display = 'none';
+        storeModal.style.display = 'none';
+
         targetDisplay.style.display = 'block';
     }
 
@@ -1118,7 +1602,7 @@
         gameState = 'intermission';
         targetDisplay.style.display = 'none';
         overlay.style.display = 'flex';
-        intermissionScreen.style.display = 'block';
+        intermissionScreen.style.display = 'flex';
     }
 
     function startLevelTwo() {
@@ -1145,7 +1629,7 @@
         particles = [];
         floatingTexts = [];
         
-        document.getElementById('game-container').style.background = '#020617'; 
+        updateBackground();
         
         buildLevel();
         spawnInitialWords();
@@ -1154,8 +1638,11 @@
 
         gameState = 'playing';
         overlay.style.display = 'none';
+        
+        // Hide all screens
         startScreen.style.display = 'none';
         intermissionScreen.style.display = 'none';
+        
         targetDisplay.style.display = 'block';
     }
 
@@ -1165,9 +1652,11 @@
         
         document.getElementById('go-title').innerText = `Great Try, ${playerName}!`;
         document.getElementById('final-score').innerText = score;
+
+        saveHighScore(playerName, score);
         
         overlay.style.display = 'flex';
-        gameOverScreen.style.display = 'block';
+        gameOverScreen.style.display = 'flex';
     }
 
     function winGame() {
@@ -1176,9 +1665,44 @@
         
         document.getElementById('win-title').innerText = `You Did It, ${playerName}!`;
         document.getElementById('win-score').innerText = score;
+
+        saveHighScore(playerName, score);
         
         overlay.style.display = 'flex';
-        winScreen.style.display = 'block';
+        winScreen.style.display = 'flex';
+    }
+
+    function goToMainMenu() {
+        gameState = 'menu';
+        targetDisplay.style.display = 'none';
+        storeModal.style.display = 'none';
+        readingModal.style.display = 'none';
+        
+        // Ensure overlay is standard background
+        overlay.style.display = 'flex';
+        overlay.style.backgroundColor = 'rgba(0,0,0,0.85)';
+        
+        // Hide other screens
+        gameOverScreen.style.display = 'none';
+        winScreen.style.display = 'none';
+        intermissionScreen.style.display = 'none';
+        leaderboardScreen.style.display = 'none';
+        
+        // Show start screen
+        startScreen.style.display = 'flex';
+        
+        // Stop movement
+        keys.left = keys.right = keys.up = false; 
+    }
+
+    function openLeaderboard() {
+        startScreen.style.display = 'none';
+        leaderboardScreen.style.display = 'flex';
+    }
+
+    function closeLeaderboard() {
+        leaderboardScreen.style.display = 'none';
+        startScreen.style.display = 'flex';
     }
 
     function update() {
@@ -1205,7 +1729,21 @@
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        if (gameState !== 'playing') return;
+        // Keep drawing background and objects even when paused in the store or other popups!
+        if (gameState !== 'playing' && gameState !== 'store' && gameState !== 'intermission' && gameState !== 'reading') {
+            // When in main menu, maybe draw static background
+            updateBackground();
+            // Draw background stars
+            ctx.fillStyle = '#ffffff';
+            for(let i=0; i<30; i++){
+                let sx = (Math.sin(i*123) * 0.5 + 0.5) * canvas.width;
+                let sy = (Math.cos(i*321) * 0.5 + 0.5) * canvas.height;
+                ctx.globalAlpha = 0.6;
+                ctx.fillRect(sx, sy, 2, 2);
+            }
+            ctx.globalAlpha = 1.0;
+            return;
+        }
 
         // Draw background stars
         ctx.fillStyle = '#ffffff';
@@ -1251,16 +1789,20 @@
     document.getElementById('start-btn').addEventListener('click', initGame);
     document.getElementById('level2-btn').addEventListener('click', startLevelTwo);
     
-    document.getElementById('restart-btn').addEventListener('click', () => {
-        gameOverScreen.style.display = 'none';
-        startScreen.style.display = 'block';
-    });
-    document.getElementById('win-restart-btn').addEventListener('click', () => {
-        winScreen.style.display = 'none';
-        startScreen.style.display = 'block';
-    });
+    storeBtn.addEventListener('click', openStore);
+    closeStoreBtn.addEventListener('click', closeStore);
+    menuBtn.addEventListener('click', goToMainMenu);
+    
+    document.getElementById('open-leaderboard-btn').addEventListener('click', openLeaderboard);
+    document.getElementById('close-leaderboard-btn').addEventListener('click', closeLeaderboard);
+    
+    document.getElementById('restart-btn').addEventListener('click', goToMainMenu);
+    document.getElementById('win-restart-btn').addEventListener('click', goToMainMenu);
 
     readBtn.addEventListener('click', advanceReading);
+
+    // Initial setup to ensure correct screen display state
+    goToMainMenu();
 
     requestAnimationFrame(loop);
 
