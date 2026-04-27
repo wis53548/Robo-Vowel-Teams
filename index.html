@@ -263,6 +263,7 @@
         #fullscreen-icon svg {
             width: 100%;
             height: 100%;
+            pointer-events: none;
         }
 
         #store-modal {
@@ -422,6 +423,7 @@
                         <option value="2">Level 2 (Space)</option>
                         <option value="3">Level 3 (Ice)</option>
                         <option value="4">Level 4 (Volcano)</option>
+                        <option value="5">Level 5 (Beach)</option>
                     </select>
                 </div>
                 
@@ -810,6 +812,20 @@
 
     // Store Data
     const shopItems = {
+        backgrounds: [
+            { id: 'bg0', name: 'Default Theme', cost: 0, default: true, thumb: '', css: 'default' },
+            { id: 'bg1', name: 'Nissan Skyline', cost: 500, thumb: urlNissan, css: `linear-gradient(rgba(15,23,42,0.5), rgba(15,23,42,0.7)), url("${urlNissan}")` },
+            { id: 'bg2', name: 'Porsche 911', cost: 500, thumb: urlPorsche, css: `linear-gradient(rgba(15,23,42,0.5), rgba(15,23,42,0.7)), url("${urlPorsche}")` },
+            { id: 'bg3', name: 'Ferrari', cost: 500, thumb: urlFerrari, css: `linear-gradient(rgba(15,23,42,0.5), rgba(15,23,42,0.7)), url("${urlFerrari}")` },
+            { id: 'bg4', name: 'Lamborghini', cost: 500, thumb: urlLambo, css: `linear-gradient(rgba(15,23,42,0.5), rgba(15,23,42,0.7)), url("${urlLambo}")` },
+            { id: 'bg5', name: 'Ford Mustang', cost: 500, thumb: urlMustang, css: `linear-gradient(rgba(15,23,42,0.5), rgba(15,23,42,0.7)), url("${urlMustang}")` },
+            { id: 'bg6', name: 'Toyota Supra', cost: 500, thumb: urlSupra, css: `linear-gradient(rgba(15,23,42,0.5), rgba(15,23,42,0.7)), url("${urlSupra}")` },
+            { id: 'bg7', name: 'McLaren', cost: 500, thumb: urlMcLaren, css: `linear-gradient(rgba(15,23,42,0.5), rgba(15,23,42,0.7)), url("${urlMcLaren}")` },
+            { id: 'bg8', name: 'Chevy Camaro', cost: 500, thumb: urlCamaro, css: `linear-gradient(rgba(15,23,42,0.5), rgba(15,23,42,0.7)), url("${urlCamaro}")` },
+            { id: 'bg9', name: 'Bugatti', cost: 500, thumb: urlBugatti, css: `linear-gradient(rgba(15,23,42,0.5), rgba(15,23,42,0.7)), url("${urlBugatti}")` },
+            { id: 'bg10', name: 'BMW', cost: 500, thumb: urlBMW, css: `linear-gradient(rgba(15,23,42,0.5), rgba(15,23,42,0.7)), url("${urlBMW}")` },
+            { id: 'bg11', name: 'Audi R8', cost: 500, thumb: urlAudi, css: `linear-gradient(rgba(15,23,42,0.5), rgba(15,23,42,0.7)), url("${urlAudi}")` }
+        ],
         colors: [
             { id: '#facc15', name: 'Yellow Paint', cost: 0, default: true },
             { id: '#ef4444', name: 'Red Paint', cost: 500 },
@@ -851,6 +867,7 @@
     };
 
     let unlocks = {
+        backgrounds: ['bg0'],
         colors: ['#facc15'],
         tops: ['ball'],
         eyes: ['square'],
@@ -858,6 +875,7 @@
     };
 
     let equipped = {
+        backgrounds: 'bg0',
         colors: '#facc15',
         tops: 'ball',
         eyes: 'square',
@@ -866,17 +884,27 @@
 
     function updateBackground() {
         const container = document.getElementById('game-container');
-        if (currentLevel === 1) {
-            container.style.background = 'linear-gradient(to bottom, #0f3460, #1a1a2e)'; // Earth
-        } else if (currentLevel === 2) {
-            container.style.background = '#020617'; // Space
-        } else if (currentLevel === 3) {
-            container.style.background = 'linear-gradient(to bottom, #bae6fd, #e0f2fe)'; // Ice
-        } else if (currentLevel === 4) {
-            container.style.background = 'linear-gradient(to bottom, #450a0a, #7f1d1d)'; // Volcano
+        const bgItem = shopItems.backgrounds.find(bg => bg.id === equipped.backgrounds);
+        
+        if (bgItem && bgItem.css !== 'default') {
+            container.style.background = bgItem.css;
+            container.style.backgroundSize = 'cover';
+            container.style.backgroundPosition = 'center';
+        } else {
+            if (currentLevel === 1) {
+                container.style.background = 'linear-gradient(to bottom, #0f3460, #1a1a2e)'; // Earth
+            } else if (currentLevel === 2) {
+                container.style.background = '#020617'; // Space
+            } else if (currentLevel === 3) {
+                container.style.background = 'linear-gradient(to bottom, #bae6fd, #e0f2fe)'; // Ice
+            } else if (currentLevel === 4) {
+                container.style.background = 'linear-gradient(to bottom, #450a0a, #7f1d1d)'; // Volcano
+            } else if (currentLevel === 5) {
+                container.style.background = 'linear-gradient(to bottom, #7dd3fc, #fde047)'; // Beach
+            }
+            container.style.backgroundSize = '';
+            container.style.backgroundPosition = '';
         }
-        container.style.backgroundSize = '';
-        container.style.backgroundPosition = '';
     }
 
     // Admin Cheat Listener
@@ -943,18 +971,46 @@
         }
     });
 
+    // Fullscreen Error Helper
+    function showFullscreenError() {
+        const msg = document.createElement('div');
+        msg.innerText = "Native Fullscreen is blocked in this preview window. Save the HTML file to your computer to use it!";
+        msg.style.position = 'fixed';
+        msg.style.top = '20px';
+        msg.style.left = '50%';
+        msg.style.transform = 'translateX(-50%)';
+        msg.style.backgroundColor = '#ef4444';
+        msg.style.color = '#fff';
+        msg.style.padding = '12px 24px';
+        msg.style.borderRadius = '8px';
+        msg.style.zIndex = '99999';
+        msg.style.fontWeight = 'bold';
+        msg.style.boxShadow = '0 4px 10px rgba(0,0,0,0.5)';
+        document.body.appendChild(msg);
+        setTimeout(() => msg.remove(), 4500);
+    }
+
     // Fullscreen Logic
     fullscreenIcon.addEventListener('click', () => {
         const elem = document.documentElement;
         if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+            let p;
             if (elem.requestFullscreen) {
-                elem.requestFullscreen().catch(err => console.log(err.message));
+                p = elem.requestFullscreen();
             } else if (elem.webkitRequestFullscreen) {
-                elem.webkitRequestFullscreen();
+                p = elem.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
             } else if (elem.msRequestFullscreen) {
-                elem.msRequestFullscreen();
-            } else {
-                console.log("Fullscreen not supported. Try running directly from Notepad file.");
+                p = elem.msRequestFullscreen();
+            } else if (elem.mozRequestFullScreen) {
+                p = elem.mozRequestFullScreen();
+            }
+            
+            // If the browser blocks it (like in the preview iframe), show the warning!
+            if (p && typeof p.catch === 'function') {
+                p.catch(err => {
+                    console.log(`Fullscreen error: ${err.message}`);
+                    showFullscreenError();
+                });
             }
         } else {
             if (document.exitFullscreen) {
@@ -963,6 +1019,8 @@
                 document.webkitExitFullscreen();
             } else if (document.msExitFullscreen) {
                 document.msExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
             }
         }
     });
@@ -987,8 +1045,12 @@
     let currentReadingWords = [];
     let currentReadingIndex = 0;
 
-    // Heart Spawn Timer
+    // Timers & Beach Mechanic
     let heartSpawnTimer = 60 * 60; // Approx 60 seconds at 60fps
+    let tideState = 'none'; // 'none', 'warning', 'rising', 'high', 'receding', 'clear'
+    let tideTimer = 0;
+    let tideLevel = 600;
+    let tideCooldown = 60 * 45; // 45 seconds
 
     // Physics Engine Variables (Locked to the slower, weightier physics!)
     let gravity = 0.15; 
@@ -1072,21 +1134,32 @@
                     this.y < plat.y + plat.h && this.y + this.h > plat.y) {
                     
                     if (isHorizontal) {
-                        // Prevent horizontal teleport if landing/standing on top
-                        if (oldY + this.h <= plat.y + 4) continue;
+                        // Only snap to sides if the player is generally "beside" the platform
+                        // This prevents glitching when bumping head or toes on corners!
+                        if (this.y + this.h <= plat.y + 8 || this.y >= plat.y + plat.h - 8) continue;
 
-                        if (this.vx > 0) this.x = plat.x - this.w;
-                        else if (this.vx < 0) this.x = plat.x + plat.w;
-                        this.vx = 0;
+                        if (this.vx > 0 && oldX + this.w <= plat.x + 0.1) {
+                            this.x = plat.x - this.w;
+                            this.vx = 0;
+                        } else if (this.vx < 0 && oldX >= plat.x + plat.w - 0.1) {
+                            this.x = plat.x + plat.w;
+                            this.vx = 0;
+                        }
                     } else {
                         if (this.vy > 0 || (plat.isMovingVert && plat.vy < 0 && this.vy === 0)) { 
-                            this.y = plat.y - this.h;
-                            this.vy = 0;
-                            this.grounded = true;
-                            this.currentPlat = plat;
+                            // Only land if we were previously ABOVE the platform
+                            if (oldY + this.h <= plat.y + Math.max(12, this.vy + Math.abs(plat.vy || 0) + 2)) {
+                                this.y = plat.y - this.h;
+                                this.vy = 0;
+                                this.grounded = true;
+                                this.currentPlat = plat;
+                            }
                         } else if (this.vy < 0) {
-                            this.y = plat.y + plat.h;
-                            this.vy = 0;
+                            // Only bonk head if we were previously BELOW the platform
+                            if (oldY >= plat.y + plat.h - Math.max(12, -this.vy + 2)) {
+                                this.y = plat.y + plat.h;
+                                this.vy = 0;
+                            }
                         }
                     }
                 }
@@ -1303,6 +1376,7 @@
             else if (currentLevel === 2) { this.color = '#8b5cf6'; this.baseColor = '#4c1d95'; }
             else if (currentLevel === 3) { this.color = '#bae6fd'; this.baseColor = '#0284c7'; } // Ice
             else if (currentLevel === 4) { this.color = '#7f1d1d'; this.baseColor = '#450a0a'; } // Volcano
+            else if (currentLevel === 5) { this.color = '#fde047'; this.baseColor = '#b45309'; } // Beach Sand
             
             this.isMoving = isMoving;
             this.isMovingVert = isMovingVert;
@@ -1481,6 +1555,7 @@
             else if (currentLevel === 2) this.color = '#d946ef'; 
             else if (currentLevel === 3) this.color = '#0ea5e9'; // Ice Yeti
             else if (currentLevel === 4) this.color = '#f97316'; // Lava monster
+            else if (currentLevel === 5) this.color = '#f43f5e'; // Beach crab
         }
 
         update() {
@@ -1533,6 +1608,45 @@
         draw() {
             if (!this.active) return;
             let bob = Math.sin(Date.now() / 120) * 3; 
+
+            if (currentLevel === 5) {
+                // Draw a Beach Crab!
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.ellipse(this.x + this.w/2, this.y + this.h/2 + bob + 4, 12, 8, 0, 0, Math.PI*2);
+                ctx.fill();
+                
+                // Legs (animated)
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 2;
+                let legSwing = Math.sin(Date.now() / 80) * 4;
+                
+                // Left legs
+                ctx.beginPath(); ctx.moveTo(this.x + 8, this.y + this.h/2 + 4 + bob); ctx.lineTo(this.x - 2 - legSwing, this.y + this.h + bob); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(this.x + 10, this.y + this.h/2 + 6 + bob); ctx.lineTo(this.x + 2 - legSwing, this.y + this.h + bob); ctx.stroke();
+                
+                // Right legs
+                ctx.beginPath(); ctx.moveTo(this.x + this.w - 8, this.y + this.h/2 + 4 + bob); ctx.lineTo(this.x + this.w + 2 + legSwing, this.y + this.h + bob); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(this.x + this.w - 10, this.y + this.h/2 + 6 + bob); ctx.lineTo(this.x + this.w - 2 + legSwing, this.y + this.h + bob); ctx.stroke();
+
+                // Claws
+                ctx.beginPath(); ctx.moveTo(this.x + 6, this.y + this.h/2 + bob); ctx.lineTo(this.x, this.y + bob); ctx.stroke();
+                ctx.beginPath(); ctx.arc(this.x, this.y + bob, 4, Math.PI*0.5, Math.PI*1.5); ctx.fill(); // Left claw
+
+                ctx.beginPath(); ctx.moveTo(this.x + this.w - 6, this.y + this.h/2 + bob); ctx.lineTo(this.x + this.w, this.y + bob); ctx.stroke();
+                ctx.beginPath(); ctx.arc(this.x + this.w, this.y + bob, 4, -Math.PI*0.5, Math.PI*0.5); ctx.fill(); // Right claw
+
+                // Eyes
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.arc(this.x + this.w/2 - 4, this.y + 4 + bob, 3, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(this.x + this.w/2 + 4, this.y + 4 + bob, 3, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#000';
+                let lookDir = this.vx > 0 ? 1 : -1;
+                ctx.beginPath(); ctx.arc(this.x + this.w/2 - 4 + lookDir, this.y + 4 + bob, 1.5, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(this.x + this.w/2 + 4 + lookDir, this.y + 4 + bob, 1.5, 0, Math.PI*2); ctx.fill();
+                
+                return; // Skip standard enemy drawing
+            }
 
             ctx.fillStyle = this.color;
             ctx.beginPath();
@@ -1622,8 +1736,8 @@
         platforms = [];
         platforms.push(new Platform(-100, 550, 1000, 50));
 
-        if (currentLevel === 1 || currentLevel === 3) {
-            // Earth or Ice - Standard Layout
+        if (currentLevel === 1 || currentLevel === 3 || currentLevel === 5) {
+            // Earth, Ice, or Beach - Standard Layout
             platforms.push(new Platform(150, 420, 150, 20));
             platforms.push(new Platform(500, 420, 150, 20));
             platforms.push(new Platform(300, 280, 200, 20));
@@ -1769,7 +1883,7 @@
         teamsCompletedThisLevel++;
 
         if (teamsCompletedThisLevel >= teams.length) {
-            if (currentLevel < 4) {
+            if (currentLevel < 5) {
                 showIntermission();
             } else {
                 winGame();
@@ -1848,7 +1962,13 @@
                 let status = isEquipped ? 'Equipped' : (isUnlocked ? 'Equip' : `${item.cost} tkns`);
                 
                 let thumbHtml = '';
-                if (category === 'colors') {
+                if (category === 'backgrounds') {
+                    if (item.id === 'bg0') {
+                        thumbHtml = `<div class="shop-thumbnail" style="background: linear-gradient(to bottom, #0f3460, #1a1a2e);"></div>`;
+                    } else {
+                        thumbHtml = `<div class="shop-thumbnail" style="background-image: url('${item.thumb}');"></div>`;
+                    }
+                } else if (category === 'colors') {
                     thumbHtml = `<div class="shop-thumbnail" style="background: ${item.id}; height: 25px;"></div>`;
                 }
 
@@ -1875,6 +1995,7 @@
         if (isUnlocked) {
             // Equip
             equipped[category] = itemId;
+            if (category === 'backgrounds') updateBackground();
             playSound('jump');
             renderStore();
             saveProgress();
@@ -1885,6 +2006,7 @@
                 tokens -= item.cost;
                 unlocks[category].push(itemId);
                 equipped[category] = itemId; // Auto equip
+                if (category === 'backgrounds') updateBackground();
                 playSound('coin');
                 updateHUD();
                 renderStore();
@@ -2021,11 +2143,19 @@
             tokens = pendingSaveData.tokens || score; // Legacy saves don't have tokens, copy score
             unlocks = pendingSaveData.unlocks || unlocks;
             equipped = pendingSaveData.equipped || equipped;
+
+            // Retroactive save fix for missing background category
+            if (!unlocks.backgrounds) unlocks.backgrounds = ['bg0'];
+            if (!equipped.backgrounds) equipped.backgrounds = 'bg0';
+            
+            // Catch old save format
+            if (equipped.backgrounds === 'none' || equipped.backgrounds === 'default') equipped.backgrounds = 'bg0';
+
             currentLevel = pendingSaveData.currentLevel || 1;
             currentTargetTeamIndex = pendingSaveData.currentTargetTeamIndex || 0;
             teamsCompletedThisLevel = pendingSaveData.teamsCompletedThisLevel || 0;
             wordsCollected = pendingSaveData.wordsCollected || 0;
-            health = 3; 
+            health = 3; // Refill health on continue
         } else {
             score = 0;
             tokens = 0;
@@ -2034,8 +2164,8 @@
             teamsCompletedThisLevel = 0;
             currentTargetTeamIndex = 0;
             wordsCollected = 0;
-            unlocks = { colors: ['#facc15'], tops: ['ball'], eyes: ['square'], wheels: ['treads'] };
-            equipped = { colors: '#facc15', tops: 'ball', eyes: 'square', wheels: 'treads' };
+            unlocks = { backgrounds: ['bg0'], colors: ['#facc15'], tops: ['ball'], eyes: ['square'], wheels: ['treads'] };
+            equipped = { backgrounds: 'bg0', colors: '#facc15', tops: 'ball', eyes: 'square', wheels: 'treads' };
         }
 
         if (playerName.toLowerCase() === 'admin') {
@@ -2049,6 +2179,7 @@
             if (selLevel === '2') { startNextLevel(2); return; }
             if (selLevel === '3') { startNextLevel(3); return; }
             if (selLevel === '4') { startNextLevel(4); return; }
+            if (selLevel === '5') { startNextLevel(5); return; }
         }
 
         // Apply physics based on level
@@ -2062,6 +2193,11 @@
         floatingTexts = [];
         heartsList = [];
         heartSpawnTimer = 60 * 60; // Reset timer
+        
+        // Reset Tide 
+        tideState = 'none';
+        tideLevel = canvas.height;
+        tideCooldown = 60 * 45; // Starts counting down slightly early
         
         updateBackground();
         
@@ -2116,13 +2252,20 @@
             text2.innerText = "Watch your step on the moving lava rocks!";
             btn.style.backgroundColor = "#f97316";
             btn.style.boxShadow = "0 6px 0 #c2410c";
+        } else if (currentLevel === 4) {
+            title.innerText = "LEVEL 5: BEACH VOWELS!";
+            title.style.color = "#38bdf8";
+            text1.innerText = "You survived the heat!";
+            text2.innerText = "Watch out for the rising tide on the beach!";
+            btn.style.backgroundColor = "#38bdf8";
+            btn.style.boxShadow = "0 6px 0 #0284c7";
         }
 
         intermissionScreen.style.display = 'flex';
     }
 
     function applyPhysics(level) {
-        if (level === 1) {
+        if (level === 1 || level === 5) {
             gravity = 0.15; 
             playerJumpPower = -7.0; 
             maxSpeed = 2.4;
@@ -2143,11 +2286,11 @@
             friction = 0.98;
         } else if (level === 4) {
             // Volcano: Normalish physics, slightly heavier
-            gravity = 0.20; 
-            playerJumpPower = -8.0; 
+            gravity = 0.15; 
+            playerJumpPower = -7.0; 
             maxSpeed = 2.4; 
             acceleration = 0.4; 
-            friction = 0.80;
+            friction = 0.85;
         }
     }
 
@@ -2172,6 +2315,11 @@
         floatingTexts = [];
         heartsList = [];
         heartSpawnTimer = 60 * 60;
+        
+        // Reset Tide 
+        tideState = 'none';
+        tideLevel = canvas.height;
+        tideCooldown = 60 * 45;
         
         updateBackground();
         
@@ -2258,6 +2406,48 @@
 
         player.update();
         
+        // --- LEVEL 5 TIDE LOGIC ---
+        if (currentLevel === 5) {
+            if (tideState === 'none') {
+                tideCooldown--;
+                if (tideCooldown <= 0) {
+                    tideState = 'warning';
+                    tideTimer = 10 * 60; // 10 second warning
+                }
+            } else if (tideState === 'warning') {
+                tideTimer--;
+                if (tideTimer <= 0) tideState = 'rising';
+            } else if (tideState === 'rising') {
+                tideLevel -= 0.4; // Rise up slowly
+                if (tideLevel <= 400) { // Sits high enough to cover the bottom platforms!
+                    tideLevel = 400;
+                    tideState = 'high';
+                    tideTimer = 20 * 60; // Stay high for 20 seconds
+                }
+            } else if (tideState === 'high') {
+                tideTimer--;
+                if (tideTimer <= 0) tideState = 'receding';
+            } else if (tideState === 'receding') {
+                tideLevel += 0.4; // Recede slowly
+                if (tideLevel >= canvas.height) {
+                    tideLevel = canvas.height;
+                    tideState = 'clear';
+                    tideTimer = 3 * 60; // Show all clear for 3 seconds
+                }
+            } else if (tideState === 'clear') {
+                tideTimer--;
+                if (tideTimer <= 0) {
+                    tideState = 'none';
+                    tideCooldown = 60 * 45; // Next tide in 45 secs
+                }
+            }
+
+            // Hurt player if they touch the tide
+            if (tideLevel < canvas.height && player.y + player.h > tideLevel + 10) {
+                takeDamage();
+            }
+        }
+        
         for (let plat of platforms) plat.update();
         for (let enemy of enemies) enemy.update();
         for (let word of words) word.update();
@@ -2338,6 +2528,46 @@
                 ctx.fillRect(sx, sy, 3, 3);
             }
             ctx.globalAlpha = 1.0;
+        }
+
+        // Draw Level 5 Water Tide (Background Layer)
+        if (currentLevel === 5 && tideLevel < canvas.height) {
+            ctx.fillStyle = 'rgba(2, 132, 199, 0.75)'; // Transparent Ocean blue
+            ctx.beginPath();
+            ctx.moveTo(0, tideLevel);
+            // Wavy Top
+            for(let i=0; i<=canvas.width; i+=20) {
+                ctx.lineTo(i, tideLevel + Math.sin(i*0.05 + Date.now()/200)*5);
+            }
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.lineTo(0, canvas.height);
+            ctx.fill();
+        }
+
+        // Draw Tide Warnings on UI Layer
+        if (currentLevel === 5) {
+            if (tideState === 'warning') {
+                ctx.fillStyle = '#ef4444';
+                ctx.font = 'bold 36px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#000';
+                ctx.fillText('⚠️ TIDE WARNING! GET TO HIGH GROUND! ⚠️', canvas.width/2, 110);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 24px monospace';
+                ctx.fillText(`Water rising in: ${Math.ceil(tideTimer/60)}`, canvas.width/2, 155);
+                ctx.shadowBlur = 0;
+            } else if (tideState === 'clear') {
+                ctx.fillStyle = '#10b981';
+                ctx.font = 'bold 36px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#000';
+                ctx.fillText('✅ ALL CLEAR! ✅', canvas.width/2, 110);
+                ctx.shadowBlur = 0;
+            }
         }
 
         for (let plat of platforms) plat.draw();
