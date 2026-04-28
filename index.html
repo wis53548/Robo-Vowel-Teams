@@ -505,7 +505,7 @@
             <h2 style="color: #38bdf8; font-size: 48px; margin:0;">Great job!</h2>
             <p style="font-size: 24px; color: #fff;">Read aloud:</p>
             <div id="read-word-container"></div>
-            <button class="btn" id="read-btn">I Read It! (Enter)</button>
+            <button class="btn" id="read-btn">🎙️ Click to Speak (Enter)</button>
         </div>
 
         <!-- Shop Overlay Modal -->
@@ -951,7 +951,7 @@
 
         if (gameState === 'reading' && e.code === 'Enter') {
             e.preventDefault();
-            advanceReading();
+            handleReadAction();
             return;
         }
 
@@ -2526,6 +2526,10 @@
         }
         readWordContainer.innerHTML = html;
         readingModal.style.display = 'flex';
+        
+        // Reset button state for the new word
+        readBtn.innerText = "🎙️ Click to Speak (Enter)";
+        readBtn.style.backgroundColor = "#e94560";
     }
 
     function handleWordHit(w, i) {
@@ -3300,7 +3304,83 @@
     document.getElementById('restart-btn').addEventListener('click', goToMainMenu);
     document.getElementById('win-restart-btn').addEventListener('click', goToMainMenu);
 
-    readBtn.addEventListener('click', advanceReading);
+    // --- Voice Recognition Setup ---
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    let isListening = false;
+
+    if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+            isListening = true;
+            readBtn.innerText = "🎙️ Listening...";
+            readBtn.style.backgroundColor = "#ff4757"; // Turn red to show recording
+        };
+
+        recognition.onresult = (event) => {
+            let spokenWord = event.results[0][0].transcript.toLowerCase().trim();
+            spokenWord = spokenWord.replace(/[.,!?]/g, ''); 
+            
+            let targetWord = currentReadingWords[currentReadingIndex].toLowerCase();
+            
+            if (spokenWord === targetWord) {
+                readBtn.innerText = "Correct! 🌟";
+                readBtn.style.backgroundColor = "#4ade80"; // Turn green for success
+                setTimeout(() => advanceReading(), 700); 
+            } else {
+                readBtn.innerText = `Heard "${spokenWord}". Try again!`;
+                readBtn.style.backgroundColor = "#f59e0b"; // Turn orange/yellow for retry
+                setTimeout(() => {
+                    if (!isListening && gameState === 'reading') {
+                        readBtn.innerText = "🎙️ Click to Speak (Enter)";
+                        readBtn.style.backgroundColor = "#e94560";
+                    }
+                }, 2500);
+            }
+        };
+
+        recognition.onerror = (event) => {
+            console.error("Speech recognition error:", event.error);
+            readBtn.innerText = `Mic error. Try again!`;
+            setTimeout(() => {
+                if (!isListening && gameState === 'reading') {
+                    readBtn.innerText = "🎙️ Click to Speak (Enter)";
+                    readBtn.style.backgroundColor = "#e94560";
+                }
+            }, 2500);
+        };
+
+        recognition.onend = () => {
+            isListening = false;
+            // Let the success/failure timeouts handle the UI resets
+            if (readBtn.innerText === "🎙️ Listening...") {
+                readBtn.innerText = "🎙️ Click to Speak (Enter)";
+                readBtn.style.backgroundColor = "#e94560";
+            }
+        };
+    }
+
+    function handleReadAction() {
+        if (!recognition) {
+            // Fallback if browser doesn't support speech recognition
+            advanceReading();
+            return;
+        }
+        if (!isListening) {
+            try {
+                recognition.start();
+            } catch(e) {
+                console.error("Speech recognition start error:", e);
+            }
+        }
+    }
+
+    readBtn.addEventListener('click', handleReadAction);
 
     // Initial setup to ensure correct screen display state
     goToMainMenu();
