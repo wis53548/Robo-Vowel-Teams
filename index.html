@@ -660,7 +660,6 @@
 
     initFirebase();
 
-
     // --- Word Data ---
     const wordLists = {
         'EA': ['read', 'meat', 'seat', 'beak', 'leaf', 'peak', 'weak', 'team', 'dream', 'sea', 'tea', 'bean', 'clean', 'peach', 'beach', 'teach', 'reach', 'feast', 'beast', 'heap'],
@@ -808,8 +807,6 @@
     // =========================================================================================
     // === CAR BACKGROUND URLS - EDIT THESE LINKS IF THE PICTURES DON'T LOAD ===================
     // =========================================================================================
-    // To change a car photo, simply replace the URL inside the single quotes below.
-    // We are using reliable Unsplash source URLs here, but you can paste any link.
     const urlNissan = 'https://images.unsplash.com/photo-1611821064430-0d40221e95f3?auto=format&fit=crop&w=800&q=80';
     const urlPorsche = 'https://images.unsplash.com/photo-1503376760302-7669af662204?auto=format&fit=crop&w=800&q=80';
     const urlFerrari = 'https://images.unsplash.com/photo-1592198084004-e46ce0a16e41?auto=format&fit=crop&w=800&q=80';
@@ -1045,7 +1042,6 @@
                 p = elem.mozRequestFullScreen();
             }
             
-            // If the browser blocks it (like in the preview iframe), show the warning!
             if (p && typeof p.catch === 'function') {
                 p.catch(err => {
                     console.log(`Fullscreen error: ${err.message}`);
@@ -1072,7 +1068,6 @@
     let tokens = 0;
     let health = 3;
     let maxHealth = 4;
-    let ammo = 0;
     
     // Level Progression Logic
     let currentLevel = 1;
@@ -1085,17 +1080,6 @@
     // Reading multi-word state
     let currentReadingWords = [];
     let currentReadingIndex = 0;
-
-    // Timers & Level Specific Events
-    let heartSpawnTimer = 60 * 60; // Approx 60 seconds at 60fps
-    let shellSpawnTimer = 15 * 60; // 15 seconds
-    let enemyRespawnTimer = 180;
-    
-    let tideState = 'none'; // 'none', 'warning', 'rising', 'high', 'receding', 'clear'
-    let tideTimer = 0;
-    let tideLevel = 600;
-    let targetTideLevel = 400;
-    let tideCooldown = 60 * 45; // 45 seconds
 
     // Physics Engine Variables (Locked to the slower, weightier physics!)
     let gravity = 0.15; 
@@ -1270,7 +1254,9 @@
                 ctx.beginPath(); ctx.arc(this.x + this.w - 6, drawY - 4 + antennaBob, 4, 0, Math.PI*2); ctx.fill();
             } else if (equipped.tops === 'wizard') {
                 ctx.fillStyle = '#3b82f6';
-                ctx.beginPath(); ctx.moveTo(this.x-4, drawY+2+antennaBob); ctx.lineTo(this.x+this.w+4, drawY+2+antennaBob); ctx.lineTo(this.x+this.w/2, drawY-20+antennaBob); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(this.x-4, drawY+2+antennaBob); ctx.lineTo(this.x+this.w+4, drawY+2+antennaBob); ctx.lineTo(this.x+this.w/2, drawY-24+antennaBob); ctx.fill();
+                ctx.fillStyle = '#1d4ed8'; ctx.fillRect(this.x-8, drawY+2+antennaBob, this.w+16, 4); // brim
+                ctx.fillStyle = '#facc15'; ctx.font = '12px sans-serif'; ctx.fillText('★', this.x+this.w/2-5, drawY-10+antennaBob);
             } else if (equipped.tops === 'chef') {
                 ctx.fillStyle = '#fff';
                 ctx.fillRect(this.x+4, drawY-8+antennaBob, 24, 10);
@@ -1581,15 +1567,20 @@
             this.active = true;
             this.life = 30 * 60; // 30 seconds
             this.leaving = false;
+            this.leavingDir = 0; // Remembers momentum direction for seamless leaving
         }
         update() {
             if (!this.active) return;
             this.life--;
             
-            if (this.life <= 0 || (player.isHidden && this.life < 27 * 60)) this.leaving = true;
+            // Check if it's time to leave (timeout OR player hid)
+            if (!this.leaving && (this.life <= 0 || (player.isHidden && this.life < 27 * 60))) {
+                this.leaving = true;
+                this.leavingDir = this.vx >= 0 ? 3 : -3; // Don't instantly flip direction, just speed up!
+            }
 
             if (this.leaving) {
-                this.vx = 3; 
+                this.vx = this.leavingDir; 
             } else {
                 this.vx = (player.x < this.x) ? -1.5 : 1.5;
                 if (player.y < this.y - 40 && Math.random() < 0.02 && this.vy === 0) this.vy = -9; 
@@ -1612,32 +1603,63 @@
                 player.y < this.y + this.h && player.y + player.h > this.y) {
                 takeDamage();
                 this.leaving = true;
+                this.leavingDir = this.vx >= 0 ? 3 : -3;
             }
 
             if (this.x > canvas.width + 100 || this.x < -100) this.active = false;
         }
         draw() {
             if (!this.active) return;
-            ctx.fillStyle = '#0f172a'; // black ape
-            ctx.beginPath(); ctx.roundRect(this.x, this.y, this.w, this.h, 8); ctx.fill();
-            ctx.fillStyle = '#78350f'; // brown face
-            ctx.fillRect(this.x + (this.vx > 0 ? 30 : 5), this.y + 10, 15, 15);
-            ctx.fillStyle = '#ef4444'; // angry eyes
-            ctx.fillRect(this.x + (this.vx > 0 ? 35 : 10), this.y + 12, 4, 4);
+            
+            ctx.fillStyle = '#0f172a'; // black fur
+            ctx.beginPath(); ctx.ellipse(this.x + this.w/2, this.y + this.h/2 + 5, 25, 20, 0, 0, Math.PI*2); ctx.fill(); // Torso
+            ctx.beginPath(); ctx.ellipse(this.x + this.w/2, this.y + 10, 16, 14, 0, 0, Math.PI*2); ctx.fill(); // Head
+            
+            // Arms
+            ctx.fillStyle = '#1e293b';
+            let armSwing = Math.sin(Date.now()/100)*10;
+            ctx.beginPath(); ctx.roundRect(this.x - 5, this.y + 15 + (this.vx>0?-armSwing:armSwing), 14, 35, 5); ctx.fill(); // Back arm
+            ctx.beginPath(); ctx.roundRect(this.x + this.w - 9, this.y + 15 + (this.vx>0?armSwing:-armSwing), 14, 35, 5); ctx.fill(); // Front arm
+            
+            // Face
+            ctx.fillStyle = '#78350f'; // brown face mask
+            ctx.beginPath(); ctx.ellipse(this.x + (this.vx>0?32:18), this.y + 14, 10, 8, 0, 0, Math.PI*2); ctx.fill();
+            
+            // Angry Eyes
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath(); ctx.moveTo(this.x + (this.vx>0?28:14), this.y + 10); ctx.lineTo(this.x + (this.vx>0?38:24), this.y + 14); ctx.lineTo(this.x + (this.vx>0?28:14), this.y + 14); ctx.fill();
         }
     }
 
     class BearBoss {
         constructor() {
-            this.w = 60; this.h = 35;
-            this.x = -60;
-            this.y = canvas.height - 50 - this.h;
-            this.vx = 6.5; 
+            this.w = 65; this.h = 40;
+            let spawnLeft = Math.random() < 0.5;
+            this.x = spawnLeft ? -80 : canvas.width + 80;
+            this.y = -50; 
+            this.vx = spawnLeft ? 3.5 : -3.5; 
+            this.vy = 0;
             this.active = true;
         }
         update() {
             if (!this.active) return;
+            
+            this.vy += gravity;
             this.x += this.vx;
+            
+            let grounded = false;
+            for (let p of platforms) {
+                if (this.x < p.x + p.w && this.x + this.w > p.x && this.y + this.h <= p.y + 12 && this.y + this.h + this.vy >= p.y) {
+                    this.y = p.y - this.h; this.vy = 0; grounded = true;
+                }
+            }
+            this.y += this.vy;
+            if (this.y > canvas.height - this.h) { this.y = canvas.height - this.h; this.vy = 0; grounded = true; }
+
+            // Bear jump logic!
+            if (grounded && Math.random() < 0.02) {
+                this.vy = -9;
+            }
 
             if (player.invulnerableTimer === 0 && 
                 player.x < this.x + this.w && player.x + player.w > this.x &&
@@ -1645,17 +1667,33 @@
                 takeDamage();
             }
 
-            if (this.x > canvas.width + 100) this.active = false;
+            if (this.x > canvas.width + 150 || this.x < -150) this.active = false;
         }
         draw() {
             if (!this.active) return;
-            let bob = Math.sin(Date.now() / 50) * 4;
-            ctx.fillStyle = '#451a03'; // dark brown bear
-            ctx.beginPath(); ctx.roundRect(this.x, this.y + bob, this.w, this.h, 10); ctx.fill();
-            ctx.fillStyle = '#d97706'; // snout
-            ctx.fillRect(this.x + this.w - 15, this.y + 10 + bob, 15, 15);
+            let bob = Math.sin(Date.now() / 60) * 3;
+            
+            ctx.fillStyle = '#451a03'; // dark brown body
+            ctx.beginPath(); ctx.ellipse(this.x + this.w/2, this.y + this.h/2 + bob, 32, 20, 0, 0, Math.PI*2); ctx.fill();
+            
+            // Legs
+            ctx.fillStyle = '#290f01';
+            let legSwing = Math.sin(Date.now() / 80) * 8;
+            ctx.beginPath(); ctx.roundRect(this.x + 10 + legSwing, this.y + this.h/2 + bob, 10, 20, 4); ctx.fill();
+            ctx.beginPath(); ctx.roundRect(this.x + this.w - 20 - legSwing, this.y + this.h/2 + bob, 10, 20, 4); ctx.fill();
+
+            // Head
+            ctx.fillStyle = '#451a03';
+            ctx.beginPath(); ctx.ellipse(this.x + (this.vx>0?55:10), this.y + 15 + bob, 18, 16, 0, 0, Math.PI*2); ctx.fill();
+            
+            // Ears
+            ctx.beginPath(); ctx.arc(this.x + (this.vx>0?45:20), this.y + 5 + bob, 6, 0, Math.PI*2); ctx.fill();
+            
+            // Snout
+            ctx.fillStyle = '#b45309'; 
+            ctx.beginPath(); ctx.ellipse(this.x + (this.vx>0?65:-5), this.y + 20 + bob, 10, 8, 0, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#000'; // nose
-            ctx.fillRect(this.x + this.w - 5, this.y + 10 + bob, 5, 5);
+            ctx.beginPath(); ctx.arc(this.x + (this.vx>0?70:-10), this.y + 18 + bob, 3, 0, Math.PI*2); ctx.fill();
         }
     }
 
@@ -1694,8 +1732,13 @@
                 ctx.beginPath(); ctx.arc(this.x+8, this.y+6, 8, Math.PI, 0); ctx.fill();
             }
             if (this.type === 'plant') { 
-                ctx.fillStyle = '#10b981'; // spiky plant
-                ctx.beginPath(); ctx.moveTo(this.x+8, this.y); ctx.lineTo(this.x+16, this.y+16); ctx.lineTo(this.x, this.y+16); ctx.fill();
+                ctx.fillStyle = '#a855f7'; 
+                ctx.beginPath(); ctx.arc(this.x+8, this.y+8, 8, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#4ade80'; // glowing spots
+                ctx.beginPath(); ctx.arc(this.x+5, this.y+5, 2, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(this.x+11, this.y+11, 2, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = 'rgba(168, 85, 247, 0.3)'; // trail
+                ctx.beginPath(); ctx.arc(this.x+8, this.y-5, 6, 0, Math.PI*2); ctx.fill();
             }
         }
     }
@@ -1879,19 +1922,31 @@
             this.vx = (Math.random() > 0.5 ? 1 : -1) * 0.4;
             this.vy = 0;
             this.active = true;
+            
+            // For Level 8 Chomper
+            this.isClosed = false;
+            this.stateTimer = Math.random() * 60 + 60;
 
             if (currentLevel === 1) this.color = '#e11d48';
             else if (currentLevel === 2) this.color = '#d946ef'; 
             else if (currentLevel === 3) this.color = '#0ea5e9'; 
             else if (currentLevel === 4) this.color = '#f97316'; 
             else if (currentLevel === 5) this.color = '#f43f5e'; 
-            else if (currentLevel === 6) this.color = '#84cc16'; // Green snake
-            else if (currentLevel === 7) this.color = '#1e293b'; // Black bug
-            else if (currentLevel === 8) this.color = '#4ade80'; // Spiky weed
+            else if (currentLevel === 6) this.color = '#84cc16'; // Snake
+            else if (currentLevel === 7) this.color = '#1e293b'; // Bug
+            else if (currentLevel === 8) this.color = '#4ade80'; // Chomper
         }
 
         update() {
             if (!this.active) return;
+            
+            if (currentLevel === 8) {
+                this.stateTimer--;
+                if (this.stateTimer <= 0) {
+                    this.isClosed = !this.isClosed;
+                    this.stateTimer = this.isClosed ? 60 : 120; // closed 1s, open 2s
+                }
+            }
             
             if (this.plat.isMoving) this.x += this.plat.vx;
             if (this.plat.isMovingVert) this.y += this.plat.vy;
@@ -1937,10 +1992,11 @@
                 player.x < this.x + this.w && player.x + player.w > this.x &&
                 player.y < this.y + this.h && player.y + player.h > this.y) {
                 
-                // Crab pinch on level 5! Always take damage if touched.
-                if (currentLevel === 5) {
-                    takeDamage();
-                } else if (player.vy > 0 && player.y + player.h < this.y + this.h / 2 + 10) {
+                let canStomp = true;
+                if (currentLevel === 5) canStomp = false; // Crabs always pinch
+                if (currentLevel === 8 && !this.isClosed) canStomp = false; // Plants bite if open!
+                
+                if (canStomp && player.vy > 0 && player.y + player.h < this.y + this.h / 2 + 10) {
                     this.active = false;
                     player.vy = playerJumpPower; 
                     score += 200;
@@ -1966,27 +2022,18 @@
                 ctx.ellipse(this.x + this.w/2, this.y + this.h/2 + bob + 4, 12, 8, 0, 0, Math.PI*2);
                 ctx.fill();
                 
-                // Legs (animated)
                 ctx.strokeStyle = this.color;
                 ctx.lineWidth = 2;
                 let legSwing = Math.sin(Date.now() / 80) * 4;
-                
-                // Left legs
                 ctx.beginPath(); ctx.moveTo(this.x + 8, this.y + this.h/2 + 4 + bob); ctx.lineTo(this.x - 2 - legSwing, this.y + this.h + bob); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(this.x + 10, this.y + this.h/2 + 6 + bob); ctx.lineTo(this.x + 2 - legSwing, this.y + this.h + bob); ctx.stroke();
-                
-                // Right legs
                 ctx.beginPath(); ctx.moveTo(this.x + this.w - 8, this.y + this.h/2 + 4 + bob); ctx.lineTo(this.x + this.w + 2 + legSwing, this.y + this.h + bob); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(this.x + this.w - 10, this.y + this.h/2 + 6 + bob); ctx.lineTo(this.x + this.w - 2 + legSwing, this.y + this.h + bob); ctx.stroke();
-
-                // Claws
                 ctx.beginPath(); ctx.moveTo(this.x + 6, this.y + this.h/2 + bob); ctx.lineTo(this.x, this.y + bob); ctx.stroke();
                 ctx.beginPath(); ctx.arc(this.x, this.y + bob, 4, Math.PI*0.5, Math.PI*1.5); ctx.fill(); // Left claw
-
                 ctx.beginPath(); ctx.moveTo(this.x + this.w - 6, this.y + this.h/2 + bob); ctx.lineTo(this.x + this.w, this.y + bob); ctx.stroke();
                 ctx.beginPath(); ctx.arc(this.x + this.w, this.y + bob, 4, -Math.PI*0.5, Math.PI*0.5); ctx.fill(); // Right claw
 
-                // Eyes
                 ctx.fillStyle = '#fff';
                 ctx.beginPath(); ctx.arc(this.x + this.w/2 - 4, this.y + 4 + bob, 3, 0, Math.PI*2); ctx.fill();
                 ctx.beginPath(); ctx.arc(this.x + this.w/2 + 4, this.y + 4 + bob, 3, 0, Math.PI*2); ctx.fill();
@@ -1996,15 +2043,23 @@
                 ctx.beginPath(); ctx.arc(this.x + this.w/2 + 4 + lookDir, this.y + 4 + bob, 1.5, 0, Math.PI*2); ctx.fill();
                 return;
             } else if (currentLevel === 6) {
-                // Snake
+                // Better Snake
                 ctx.strokeStyle = this.color;
-                ctx.lineWidth = 4;
+                ctx.lineWidth = 6;
                 ctx.lineCap = 'round';
                 ctx.beginPath();
                 ctx.moveTo(this.x, this.y + this.h);
-                for(let i=0; i<this.w; i+=4) ctx.lineTo(this.x + i, this.y + this.h - 4 + Math.sin(i*0.5 + Date.now()/100)*4);
+                for(let i=0; i<this.w; i+=4) ctx.lineTo(this.x + i, this.y + this.h - 4 + Math.sin(i*0.4 + Date.now()/100)*6);
                 ctx.stroke();
-                ctx.fillStyle = '#fff'; ctx.fillRect(this.x + (this.vx>0?this.w-4:0), this.y + this.h - 8, 4, 4);
+                // Head
+                ctx.fillStyle = this.color;
+                ctx.beginPath(); ctx.arc(this.x + (this.vx>0?this.w:0), this.y + this.h - 6 + Math.sin((this.w)*0.4 + Date.now()/100)*6, 6, 0, Math.PI*2); ctx.fill();
+                // Eye
+                ctx.fillStyle = '#facc15'; ctx.beginPath(); ctx.arc(this.x + (this.vx>0?this.w+2:-2), this.y + this.h - 8 + Math.sin((this.w)*0.4 + Date.now()/100)*6, 2, 0, Math.PI*2); ctx.fill();
+                // Tongue
+                ctx.strokeStyle = '#ef4444'; ctx.lineWidth=2;
+                ctx.beginPath(); ctx.moveTo(this.x + (this.vx>0?this.w+6:-6), this.y + this.h - 6 + Math.sin((this.w)*0.4 + Date.now()/100)*6); 
+                ctx.lineTo(this.x + (this.vx>0?this.w+10:-10), this.y + this.h - 6 + Math.sin((this.w)*0.4 + Date.now()/100)*6); ctx.stroke();
                 return;
             } else if (currentLevel === 7) {
                 // Bug
@@ -2015,9 +2070,26 @@
                 ctx.beginPath(); ctx.ellipse(this.x+this.w/2+4, this.y+this.h/2-4+bob, 6, 4, 0.5, 0, Math.PI*2); ctx.fill();
                 return;
             } else if (currentLevel === 8) {
-                // Spiky weed
-                ctx.fillStyle = this.color;
-                ctx.beginPath(); ctx.moveTo(this.x+this.w/2, this.y+bob); ctx.lineTo(this.x+this.w, this.y+this.h/2+bob); ctx.lineTo(this.x+this.w/2, this.y+this.h+bob); ctx.lineTo(this.x, this.y+this.h/2+bob); ctx.fill();
+                // Chomper Plant
+                ctx.fillStyle = '#16a34a'; // Stem
+                ctx.fillRect(this.x + this.w/2 - 3, this.y + 10 + bob, 6, 12);
+                
+                ctx.fillStyle = '#ef4444'; // Head
+                ctx.beginPath();
+                if (this.isClosed) {
+                    ctx.arc(this.x + this.w/2, this.y + 10 + bob, 10, 0, Math.PI*2);
+                } else {
+                    let mouthOpen = Math.abs(Math.sin(Date.now()/150)) * 0.8; 
+                    let startAngle = -Math.PI/2 + mouthOpen; // pointing UP
+                    let endAngle = Math.PI*1.5 - mouthOpen; // pointing UP
+                    ctx.arc(this.x + this.w/2, this.y + 10 + bob, 10, startAngle, endAngle);
+                    ctx.lineTo(this.x + this.w/2, this.y + 10 + bob);
+                }
+                ctx.fill();
+                
+                ctx.fillStyle = '#fff'; // White dots
+                ctx.beginPath(); ctx.arc(this.x + this.w/2 - 4, this.y + 4 + bob, 2, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(this.x + this.w/2 + 4, this.y + 14 + bob, 2, 0, Math.PI*2); ctx.fill();
                 return;
             }
 
@@ -2091,7 +2163,6 @@
         }
     }
 
-    // --- Globals & Level Design ---
     let player;
     let platforms = [];
     let words = [];
@@ -2102,6 +2173,18 @@
     let particles = [];
     let floatingTexts = [];
     let trees = [];
+    
+    // --- Timers & Level Specific Events ---
+    let ammo = 0;
+    let heartSpawnTimer = 60 * 60; // Approx 60 seconds at 60fps
+    let shellSpawnTimer = 15 * 60; // 15 seconds
+    let enemyRespawnTimer = 180;
+    
+    let tideState = 'none'; // 'none', 'warning', 'rising', 'high', 'receding', 'clear'
+    let tideTimer = 0;
+    let tideLevel = 600;
+    let targetTideLevel = 400;
+    let tideCooldown = 60 * 45; // 45 seconds
     
     // Level 6-8 Events
     let gorillaEvent = null;
@@ -2173,7 +2256,7 @@
     function generateWordLogic(isTargetGuaranteed) {
         let r = Math.random();
         
-        // 15% chance for CVCe Bonus Word (Much more common now!)
+        // 15% chance for CVCe Bonus Word
         if (r < 0.15) {
             let text = bonusWords[Math.floor(Math.random() * bonusWords.length)];
             return { text: text, team: 'bonus', isTarget: true, isBonus: true, isDistractor: false };
@@ -2309,6 +2392,12 @@
         setTimeout(() => targetVowelEl.classList.remove('pulse'), 300);
 
         spawnInitialWords();
+        
+        if(enemies.length < 4) {
+             let availablePlats = platforms.slice(1);
+             enemies.push(new Enemy(availablePlats[Math.floor(Math.random()*availablePlats.length)]));
+        }
+
         updateHUD();
     }
 
@@ -2514,7 +2603,7 @@
                 player.y < h.y + h.h && player.y + player.h > h.y) {
                 
                 h.active = false;
-                if (health < 3) { // Normal hearts heal up to 3 max
+                if (health < maxHealth) { 
                     health++;
                 }
                 playSound('heart');
@@ -2623,10 +2712,6 @@
         heartsList = [];
         shellList = [];
         projectiles = [];
-        heartSpawnTimer = 60 * 60; // Reset timer
-        shellSpawnTimer = 15 * 60;
-        ammo = 0;
-        enemyRespawnTimer = 180;
         
         gorillaEvent = null; bearEvent = null; weatherHazards = [];
         eventCooldown = 60 * 30; eventWarningTimer = 0; weatherTimer = 0;
@@ -2635,7 +2720,6 @@
         tideState = 'none';
         tideLevel = canvas.height;
         targetTideLevel = 400;
-        tideCooldown = 60 * 45; // Starts counting down slightly early
         
         updateBackground();
         
@@ -2881,6 +2965,8 @@
                 if (tideCooldown <= 0) {
                     tideState = 'warning';
                     tideTimer = 10 * 60; // 10 second warning
+                    // Calculate a dynamic target level between 200 (high) and 400 (low-mid).
+                    // y=180 platforms will always be safe!
                     targetTideLevel = Math.floor(Math.random() * 200) + 200; 
                 }
             } else if (tideState === 'warning') {
@@ -3096,49 +3182,46 @@
             ctx.fill();
         }
 
+        // 2. Base Gameplay Layer
         for (let plat of platforms) plat.draw();
+        player.draw();
+        
+        // 3. Foreground Scenery (Trees overlap player)
+        for (let t of trees) t.draw();
+        
+        // 4. Actors & Enemies
+        if (gorillaEvent) gorillaEvent.draw();
+        if (bearEvent) bearEvent.draw();
+        for (let enemy of enemies) enemy.draw();
+        for (let hazard of weatherHazards) hazard.draw();
+        
+        // 5. Items & Projectiles
         for (let heart of heartsList) heart.draw();
         for (let shell of shellList) shell.draw();
         for (let proj of projectiles) proj.draw();
-        for (let enemy of enemies) enemy.draw();
+        
+        // 6. UI/Top Layer Objects
+        // WORDS DRAW LAST SO THEY NEVER GET HIDDEN BY TREES OR TIDE!
         for (let word of words) word.draw();
-        player.draw();
-        
-        // Rainforest Trees draw IN FRONT of player
-        for (let t of trees) t.draw();
-        
-        // Bosses draw IN FRONT of trees
-        if (gorillaEvent) gorillaEvent.draw();
-        if (bearEvent) bearEvent.draw();
-        
-        // Weather draws IN FRONT of everything
-        for (let h of weatherHazards) h.draw();
         for (let p of particles) p.draw();
         for (let ft of floatingTexts) ft.draw();
         
         // Draw Warnings on top of EVERYTHING
         if (currentLevel === 5) {
             if (tideState === 'warning') {
-                ctx.fillStyle = '#ef4444';
-                ctx.font = 'bold 36px monospace';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'top';
+                ctx.fillStyle = '#ef4444'; ctx.font = 'bold 36px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
                 ctx.shadowBlur = 10; ctx.shadowColor = '#000';
                 ctx.fillText('⚠️ TIDE WARNING! GET TO HIGH GROUND! ⚠️', canvas.width/2, 110);
                 ctx.fillStyle = '#fff'; ctx.font = 'bold 24px monospace';
                 ctx.fillText(`Water rising in: ${Math.ceil(tideTimer/60)}`, canvas.width/2, 155);
                 ctx.shadowBlur = 0;
             } else if (tideState === 'clear') {
-                ctx.fillStyle = '#10b981';
-                ctx.font = 'bold 36px monospace';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'top';
+                ctx.fillStyle = '#10b981'; ctx.font = 'bold 36px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
                 ctx.shadowBlur = 10; ctx.shadowColor = '#000';
                 ctx.fillText('✅ ALL CLEAR! ✅', canvas.width/2, 110);
                 ctx.shadowBlur = 0;
             }
         }
-        
         if (currentLevel === 6 && eventWarningTimer > 0) {
             ctx.fillStyle = '#ef4444'; ctx.font = 'bold 36px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
             ctx.shadowBlur = 10; ctx.shadowColor = '#000';
@@ -3167,15 +3250,11 @@
 
     function loop(currentTime) {
         requestAnimationFrame(loop);
-        
         if (!currentTime) currentTime = performance.now();
         const deltaTime = currentTime - lastTime;
         
-        // Only update the game if enough time has passed (locks the game to 60 FPS)
         if (deltaTime >= frameInterval) {
-            // Adjust lastTime to account for slight browser delays (prevents micro-stutters)
             lastTime = currentTime - (deltaTime % frameInterval);
-            
             update();
             draw();
         }
@@ -3188,7 +3267,6 @@
         
         let save = await loadProgress(queryName);
         if (save) {
-            // Found a save file! Ask to continue.
             pendingSaveData = save;
             playerName = queryName; 
             document.getElementById('start-btn-group').style.display = 'none';
