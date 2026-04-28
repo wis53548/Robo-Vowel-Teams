@@ -2783,10 +2783,25 @@
         for (let ft of floatingTexts) ft.draw();
     }
 
-    function loop() {
+    // Frame Limiter Variables
+    let lastTime = 0;
+    const targetFPS = 60;
+    const frameInterval = 1000 / targetFPS;
+
+    function loop(currentTime) {
         requestAnimationFrame(loop);
-        update();
-        draw();
+        
+        if (!currentTime) currentTime = performance.now();
+        const deltaTime = currentTime - lastTime;
+        
+        // Only update the game if enough time has passed (locks the game to 60 FPS)
+        if (deltaTime >= frameInterval) {
+            // Adjust lastTime to account for slight browser delays (prevents micro-stutters)
+            lastTime = currentTime - (deltaTime % frameInterval);
+            
+            update();
+            draw();
+        }
     }
 
     // Event Listeners
