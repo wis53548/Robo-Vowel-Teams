@@ -425,6 +425,9 @@
                         <option value="3">Level 3 (Ice)</option>
                         <option value="4">Level 4 (Volcano)</option>
                         <option value="5">Level 5 (Beach)</option>
+                        <option value="6">Level 6 (Rainforest)</option>
+                        <option value="7">Level 7 (Forest)</option>
+                        <option value="8">Level 8 (Plant)</option>
                     </select>
                 </div>
                 
@@ -844,6 +847,8 @@
             { id: '#d946ef', name: 'Pink Paint', cost: 500 },
             { id: '#a855f7', name: 'Purple Paint', cost: 500 },
             { id: '#f97316', name: 'Orange Paint', cost: 500 },
+            { id: '#78350f', name: 'Brown Paint', cost: 500 },
+            { id: '#ffffff', name: 'White Paint', cost: 500 },
             { id: '#1e293b', name: 'Black Paint', cost: 500 },
             { id: '#22d3ee', name: 'Cyan Paint', cost: 500 },
             { id: '#84cc16', name: 'Lime Paint', cost: 500 },
@@ -855,6 +860,9 @@
             { id: 'star', name: 'Star Antenna', cost: 800 },
             { id: 'propeller', name: 'Propeller Cap', cost: 1200 },
             { id: 'crown', name: 'Gold Crown', cost: 2000 },
+            { id: 'bearears', name: 'Bear Ears', cost: 1200 },
+            { id: 'wizard', name: 'Wizard Hat', cost: 1500 },
+            { id: 'chef', name: 'Chef Hat', cost: 1200 },
             { id: 'halo', name: 'Angel Halo', cost: 1200 },
             { id: 'hearthat', name: 'Heart Hat', cost: 1500 },
             { id: 'pirate', name: 'Pirate Band', cost: 1500 },
@@ -866,6 +874,8 @@
             { id: 'square', name: 'Standard Visor', cost: 0, default: true },
             { id: 'laser', name: 'Laser Eye', cost: 1000 },
             { id: 'nerd', name: 'Nerd Glasses', cost: 1000 },
+            { id: 'googly', name: 'Googly Eyes', cost: 1000 },
+            { id: 'eyepatch', name: 'Eyepatch', cost: 1000 },
             { id: 'sunglasses', name: 'Cool Shades', cost: 1500 },
             { id: '3dglasses', name: '3D Glasses', cost: 1200 },
             { id: 'monocle', name: 'Classy Monocle', cost: 1200 },
@@ -915,6 +925,12 @@
                 container.style.background = 'linear-gradient(to bottom, #450a0a, #7f1d1d)'; // Volcano
             } else if (currentLevel === 5) {
                 container.style.background = 'linear-gradient(to bottom, #7dd3fc, #fde047)'; // Beach
+            } else if (currentLevel === 6) {
+                container.style.background = 'linear-gradient(to bottom, #14532d, #064e3b)'; // Rainforest
+            } else if (currentLevel === 7) {
+                container.style.background = 'linear-gradient(to bottom, #0284c7, #166534)'; // Forest Sky
+            } else if (currentLevel === 8) {
+                container.style.background = 'linear-gradient(to bottom, #4a044e, #86198f)'; // Plant level
             }
             container.style.backgroundSize = '';
             container.style.backgroundPosition = '';
@@ -973,6 +989,7 @@
         if (gameState !== 'playing' || playerName.toLowerCase() !== 'admin') return;
 
         const rect = canvas.getBoundingClientRect();
+        // Adjust mouse coordinates based on the CSS transform scale applied to the wrapper
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
         const mouseX = (e.clientX - rect.left) * scaleX;
@@ -1069,9 +1086,10 @@
     let currentReadingWords = [];
     let currentReadingIndex = 0;
 
-    // Timers & Beach Mechanic
+    // Timers & Level Specific Events
     let heartSpawnTimer = 60 * 60; // Approx 60 seconds at 60fps
     let shellSpawnTimer = 15 * 60; // 15 seconds
+    let enemyRespawnTimer = 180;
     
     let tideState = 'none'; // 'none', 'warning', 'rising', 'high', 'receding', 'clear'
     let tideTimer = 0;
@@ -1099,6 +1117,7 @@
             this.facingRight = true;
             this.invulnerableTimer = 0;
             this.currentPlat = null;
+            this.isHidden = false; // For Level 6
         }
 
         update() {
@@ -1153,6 +1172,18 @@
             }
 
             if (this.invulnerableTimer > 0) this.invulnerableTimer--;
+
+            // Level 6 Hiding Mechanic check
+            this.isHidden = false;
+            if (currentLevel === 6) {
+                for (let t of trees) {
+                    if (this.x > t.x && this.x + this.w < t.x + t.w &&
+                        this.y > t.y && this.y + this.h < t.y + t.h) {
+                        this.isHidden = true;
+                        break;
+                    }
+                }
+            }
         }
 
         checkPlatformCollisions(oldX, oldY, isHorizontal) {
@@ -1219,7 +1250,8 @@
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'bottom';
                 let hatHearts = '';
-                for (let i = 0; i < Math.max(3, health); i++) {
+                // Will always show 4 slots if maxHealth is 4
+                for (let i = 0; i < maxHealth; i++) {
                     hatHearts += i < health ? '♥' : '♡';
                 }
                 ctx.fillText(hatHearts, this.x + this.w/2, drawY - 2 + antennaBob);
@@ -1229,6 +1261,22 @@
                 ctx.beginPath();
                 ctx.ellipse(this.x + this.w/2, drawY - 10 + antennaBob, 10, 3, 0, 0, Math.PI*2);
                 ctx.stroke();
+            } else if (equipped.tops === 'bearears') {
+                ctx.fillStyle = '#78350f'; 
+                ctx.beginPath(); ctx.arc(this.x + 6, drawY - 4 + antennaBob, 8, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(this.x + this.w - 6, drawY - 4 + antennaBob, 8, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#fca5a5'; 
+                ctx.beginPath(); ctx.arc(this.x + 6, drawY - 4 + antennaBob, 4, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(this.x + this.w - 6, drawY - 4 + antennaBob, 4, 0, Math.PI*2); ctx.fill();
+            } else if (equipped.tops === 'wizard') {
+                ctx.fillStyle = '#3b82f6';
+                ctx.beginPath(); ctx.moveTo(this.x-4, drawY+2+antennaBob); ctx.lineTo(this.x+this.w+4, drawY+2+antennaBob); ctx.lineTo(this.x+this.w/2, drawY-20+antennaBob); ctx.fill();
+            } else if (equipped.tops === 'chef') {
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(this.x+4, drawY-8+antennaBob, 24, 10);
+                ctx.beginPath(); ctx.arc(this.x+8, drawY-10+antennaBob, 8, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(this.x+24, drawY-10+antennaBob, 8, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(this.x+16, drawY-14+antennaBob, 10, 0, Math.PI*2); ctx.fill();
             } else if (equipped.tops === 'ball') {
                 ctx.fillStyle = '#a1a1aa';
                 ctx.fillRect(this.x + this.w/2 - 2, drawY - 10 + antennaBob, 4, 10);
@@ -1292,7 +1340,23 @@
             }
 
             // Visor / Eyes
-            if (equipped.eyes === 'nerd') {
+            if (equipped.eyes === 'googly') {
+                let dx = this.facingRight ? 8 : 4;
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.arc(this.x+dx+4, drawY+10, 6, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(this.x+dx+16, drawY+10, 6, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#000';
+                ctx.beginPath(); ctx.arc(this.x+dx+4+(Math.random()*2-1), drawY+10+(Math.random()*2-1), 2, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(this.x+dx+16+(Math.random()*2-1), drawY+10+(Math.random()*2-1), 2, 0, Math.PI*2); ctx.fill();
+            } else if (equipped.eyes === 'eyepatch') {
+                let dx = this.facingRight ? 8 : 4;
+                ctx.fillStyle = '#1e293b';
+                ctx.beginPath(); ctx.arc(this.x+dx+4, drawY+10, 6, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(this.x, drawY+6); ctx.lineTo(this.x+this.w, drawY+14); ctx.stroke();
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(this.x+dx+14, drawY+8, 4, 4);
+            } else if (equipped.eyes === 'nerd') {
                 let dx = this.facingRight ? 8 : 4;
                 ctx.strokeStyle = '#fff';
                 ctx.lineWidth = 2;
@@ -1419,16 +1483,19 @@
         constructor(x, y, facingRight) {
             this.x = x;
             this.y = y;
-            this.vx = facingRight ? 8 : -8;
+            this.vx = facingRight ? 7 : -7;
+            this.vy = -5; // Initial upward arc (lob)
             this.w = 16;
             this.h = 16;
             this.active = true;
             this.rot = 0;
         }
         update() {
+            this.vy += gravity; // Gravity curves the arc downwards
             this.x += this.vx;
+            this.y += this.vy;
             this.rot += 0.2;
-            if (this.x < -50 || this.x > canvas.width + 50) this.active = false;
+            if (this.x < -50 || this.x > canvas.width + 50 || this.y > canvas.height) this.active = false;
         }
         draw() {
             if (!this.active) return;
@@ -1456,7 +1523,10 @@
             else if (currentLevel === 3) { this.color = '#bae6fd'; this.baseColor = '#0284c7'; } // Ice
             else if (currentLevel === 4) { this.color = '#7f1d1d'; this.baseColor = '#450a0a'; } // Volcano
             else if (currentLevel === 5) { this.color = '#fde047'; this.baseColor = '#b45309'; } // Beach Sand
-            
+            else if (currentLevel === 6) { this.color = '#047857'; this.baseColor = '#451a03'; } // Rainforest
+            else if (currentLevel === 7) { this.color = '#22c55e'; this.baseColor = '#78350f'; } // Forest
+            else if (currentLevel === 8) { this.color = '#f472b6'; this.baseColor = '#701a75'; } // Plant
+
             this.isMoving = isMoving;
             this.isMovingVert = isMovingVert;
             this.vx = isMoving ? ((Math.random() > 0.5 ? 1 : -1) * 1.2) : 0;
@@ -1488,6 +1558,148 @@
         }
     }
 
+    class Tree {
+        constructor(x, y, w, h) {
+            this.x = x; this.y = y; this.w = w; this.h = h;
+        }
+        draw() {
+            ctx.fillStyle = '#422006'; // Dark wood
+            ctx.fillRect(this.x + this.w/2 - 20, this.y + 40, 40, this.h - 40);
+            ctx.fillStyle = '#065f46'; // Leaves
+            ctx.beginPath(); ctx.arc(this.x + this.w/2, this.y + 40, 60, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(this.x + this.w/2 - 30, this.y + 20, 50, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(this.x + this.w/2 + 30, this.y + 20, 50, 0, Math.PI*2); ctx.fill();
+        }
+    }
+
+    class GorillaBoss {
+        constructor() {
+            this.w = 50; this.h = 50;
+            this.x = canvas.width + 50;
+            this.y = 100;
+            this.vx = 0; this.vy = 0;
+            this.active = true;
+            this.life = 30 * 60; // 30 seconds
+            this.leaving = false;
+        }
+        update() {
+            if (!this.active) return;
+            this.life--;
+            
+            if (this.life <= 0 || (player.isHidden && this.life < 27 * 60)) this.leaving = true;
+
+            if (this.leaving) {
+                this.vx = 3; 
+            } else {
+                this.vx = (player.x < this.x) ? -1.5 : 1.5;
+                if (player.y < this.y - 40 && Math.random() < 0.02 && this.vy === 0) this.vy = -9; 
+            }
+
+            this.vy += gravity;
+            this.x += this.vx;
+            
+            let grounded = false;
+            for (let p of platforms) {
+                if (this.x < p.x + p.w && this.x + this.w > p.x && this.y + this.h <= p.y + 12 && this.y + this.h + this.vy >= p.y) {
+                    this.y = p.y - this.h; this.vy = 0; grounded = true;
+                }
+            }
+            this.y += this.vy;
+            if (this.y > canvas.height - this.h) { this.y = canvas.height - this.h; this.vy = 0; grounded = true; }
+
+            if (!this.leaving && player.invulnerableTimer === 0 && !player.isHidden &&
+                player.x < this.x + this.w && player.x + player.w > this.x &&
+                player.y < this.y + this.h && player.y + player.h > this.y) {
+                takeDamage();
+                this.leaving = true;
+            }
+
+            if (this.x > canvas.width + 100 || this.x < -100) this.active = false;
+        }
+        draw() {
+            if (!this.active) return;
+            ctx.fillStyle = '#0f172a'; // black ape
+            ctx.beginPath(); ctx.roundRect(this.x, this.y, this.w, this.h, 8); ctx.fill();
+            ctx.fillStyle = '#78350f'; // brown face
+            ctx.fillRect(this.x + (this.vx > 0 ? 30 : 5), this.y + 10, 15, 15);
+            ctx.fillStyle = '#ef4444'; // angry eyes
+            ctx.fillRect(this.x + (this.vx > 0 ? 35 : 10), this.y + 12, 4, 4);
+        }
+    }
+
+    class BearBoss {
+        constructor() {
+            this.w = 60; this.h = 35;
+            this.x = -60;
+            this.y = canvas.height - 50 - this.h;
+            this.vx = 6.5; 
+            this.active = true;
+        }
+        update() {
+            if (!this.active) return;
+            this.x += this.vx;
+
+            if (player.invulnerableTimer === 0 && 
+                player.x < this.x + this.w && player.x + player.w > this.x &&
+                player.y < this.y + this.h && player.y + player.h > this.y) {
+                takeDamage();
+            }
+
+            if (this.x > canvas.width + 100) this.active = false;
+        }
+        draw() {
+            if (!this.active) return;
+            let bob = Math.sin(Date.now() / 50) * 4;
+            ctx.fillStyle = '#451a03'; // dark brown bear
+            ctx.beginPath(); ctx.roundRect(this.x, this.y + bob, this.w, this.h, 10); ctx.fill();
+            ctx.fillStyle = '#d97706'; // snout
+            ctx.fillRect(this.x + this.w - 15, this.y + 10 + bob, 15, 15);
+            ctx.fillStyle = '#000'; // nose
+            ctx.fillRect(this.x + this.w - 5, this.y + 10 + bob, 5, 5);
+        }
+    }
+
+    class FallingHazard {
+        constructor(type) {
+            this.x = Math.random() * canvas.width; 
+            this.y = -20;
+            this.w = 16; 
+            this.h = 16; 
+            this.vy = 3 + Math.random() * 3;
+            this.type = type; 
+            this.active = true;
+        }
+        update() {
+            this.y += this.vy;
+            for (let p of platforms) {
+                if (this.x < p.x + p.w && this.x + this.w > p.x && this.y + this.h > p.y && this.y < p.y + p.h) {
+                    this.active = false; // hit platform (player is safe under it!)
+                }
+            }
+            if (this.y > canvas.height) this.active = false;
+
+            if (this.active && player.invulnerableTimer === 0 &&
+                player.x < this.x + this.w && player.x + player.w > this.x &&
+                player.y < this.y + this.h && player.y + player.h > this.y) {
+                takeDamage();
+                this.active = false;
+            }
+        }
+        draw() {
+            if (!this.active) return;
+            if (this.type === 'acorn') { 
+                ctx.fillStyle = '#92400e'; // nut
+                ctx.beginPath(); ctx.arc(this.x+8, this.y+8, 8, 0, Math.PI*2); ctx.fill(); 
+                ctx.fillStyle = '#451a03'; // cap
+                ctx.beginPath(); ctx.arc(this.x+8, this.y+6, 8, Math.PI, 0); ctx.fill();
+            }
+            if (this.type === 'plant') { 
+                ctx.fillStyle = '#10b981'; // spiky plant
+                ctx.beginPath(); ctx.moveTo(this.x+8, this.y); ctx.lineTo(this.x+16, this.y+16); ctx.lineTo(this.x, this.y+16); ctx.fill();
+            }
+        }
+    }
+
     class WordItem {
         constructor(x, y, text, team, isTarget, isBonus = false, isDistractor = false) {
             this.x = x;
@@ -1508,8 +1720,8 @@
             
             this.multiplier = 1;
             if (this.isBonus) {
-                this.multiplier = 1; // Handled separately as a massive bonus
-                this.w = 100; // slightly larger
+                this.multiplier = 1; 
+                this.w = 100; 
             } else if (isTarget) {
                 let r = Math.random();
                 if (r < 0.15) this.multiplier = 3; 
@@ -1599,6 +1811,7 @@
             
             this.bobOffset += 0.1;
             
+            // Move with moving platform
             if (this.plat.isMoving) this.x += this.plat.vx;
             if (this.plat.isMovingVert) this.y += this.plat.vy;
         }
@@ -1607,6 +1820,7 @@
             if (!this.active) return;
             let currentY = this.y + Math.sin(this.bobOffset) * 5;
             
+            // Blink when about to disappear
             if (this.life < 180 && Math.floor(Date.now() / 100) % 2 === 0) return;
 
             ctx.fillStyle = '#ef4444';
@@ -1636,6 +1850,9 @@
             this.bobOffset += 0.1;
             if (this.plat.isMoving) this.x += this.plat.vx;
             if (this.plat.isMovingVert) this.y += this.plat.vy;
+            
+            // Tide destroys shells left on the ground
+            if (currentLevel === 5 && this.y >= tideLevel) this.active = false;
         }
 
         draw() {
@@ -1668,6 +1885,9 @@
             else if (currentLevel === 3) this.color = '#0ea5e9'; 
             else if (currentLevel === 4) this.color = '#f97316'; 
             else if (currentLevel === 5) this.color = '#f43f5e'; 
+            else if (currentLevel === 6) this.color = '#84cc16'; // Green snake
+            else if (currentLevel === 7) this.color = '#1e293b'; // Black bug
+            else if (currentLevel === 8) this.color = '#4ade80'; // Spiky weed
         }
 
         update() {
@@ -1774,10 +1994,34 @@
                 let lookDir = this.vx > 0 ? 1 : -1;
                 ctx.beginPath(); ctx.arc(this.x + this.w/2 - 4 + lookDir, this.y + 4 + bob, 1.5, 0, Math.PI*2); ctx.fill();
                 ctx.beginPath(); ctx.arc(this.x + this.w/2 + 4 + lookDir, this.y + 4 + bob, 1.5, 0, Math.PI*2); ctx.fill();
-                
-                return; // Skip standard enemy drawing
+                return;
+            } else if (currentLevel === 6) {
+                // Snake
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y + this.h);
+                for(let i=0; i<this.w; i+=4) ctx.lineTo(this.x + i, this.y + this.h - 4 + Math.sin(i*0.5 + Date.now()/100)*4);
+                ctx.stroke();
+                ctx.fillStyle = '#fff'; ctx.fillRect(this.x + (this.vx>0?this.w-4:0), this.y + this.h - 8, 4, 4);
+                return;
+            } else if (currentLevel === 7) {
+                // Bug
+                ctx.fillStyle = this.color;
+                ctx.beginPath(); ctx.ellipse(this.x+this.w/2, this.y+this.h/2+bob, 8, 6, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                ctx.beginPath(); ctx.ellipse(this.x+this.w/2-4, this.y+this.h/2-4+bob, 6, 4, -0.5, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(this.x+this.w/2+4, this.y+this.h/2-4+bob, 6, 4, 0.5, 0, Math.PI*2); ctx.fill();
+                return;
+            } else if (currentLevel === 8) {
+                // Spiky weed
+                ctx.fillStyle = this.color;
+                ctx.beginPath(); ctx.moveTo(this.x+this.w/2, this.y+bob); ctx.lineTo(this.x+this.w, this.y+this.h/2+bob); ctx.lineTo(this.x+this.w/2, this.y+this.h+bob); ctx.lineTo(this.x, this.y+this.h/2+bob); ctx.fill();
+                return;
             }
 
+            // Standard enemy fallback
             ctx.fillStyle = this.color;
             ctx.beginPath();
             ctx.moveTo(this.x, this.y + this.h);
@@ -1857,6 +2101,16 @@
     let projectiles = [];
     let particles = [];
     let floatingTexts = [];
+    let trees = [];
+    
+    // Level 6-8 Events
+    let gorillaEvent = null;
+    let bearEvent = null;
+    let weatherHazards = [];
+    let eventCooldown = 60 * 45;
+    let eventWarningTimer = 0;
+    let weatherTimer = 0;
+    let nextEventType = '';
     
     const spawnPoints = [
         {x: 100, y: 150}, {x: 400, y: 100}, {x: 650, y: 150},
@@ -1866,15 +2120,22 @@
 
     function buildLevel() {
         platforms = [];
+        trees = [];
         platforms.push(new Platform(-100, 550, 1000, 50));
 
-        if (currentLevel === 1 || currentLevel === 3 || currentLevel === 5) {
-            // Earth, Ice, or Beach - Standard Layout
+        if (currentLevel === 1 || currentLevel === 3 || currentLevel === 5 || currentLevel === 6 || currentLevel === 8) {
+            // Standard Layout
             platforms.push(new Platform(150, 420, 150, 20));
             platforms.push(new Platform(500, 420, 150, 20));
             platforms.push(new Platform(300, 280, 200, 20));
             platforms.push(new Platform(50, 180, 150, 20));
             platforms.push(new Platform(600, 180, 150, 20));
+            
+            if (currentLevel === 6) {
+                // Rainforest Trees
+                trees.push(new Tree(200, 120, 80, 430));
+                trees.push(new Tree(550, 120, 80, 430));
+            }
         } else if (currentLevel === 2) {
             // Moving Platforms for Space Level
             platforms.push(new Platform(100, 420, 150, 20, true));
@@ -1886,9 +2147,16 @@
             // Volcano - Vertically Moving Platforms!
             platforms.push(new Platform(150, 420, 150, 20, false, true));
             platforms.push(new Platform(500, 420, 150, 20, false, true));
-            platforms.push(new Platform(300, 280, 200, 20, true, false)); // Center horizontal
+            platforms.push(new Platform(300, 280, 200, 20, true, false)); 
             platforms.push(new Platform(50, 180, 150, 20, false, true));
             platforms.push(new Platform(600, 180, 150, 20, false, true));
+        } else if (currentLevel === 7) {
+            // Forest Treetops
+            platforms.push(new Platform(100, 400, 180, 20));
+            platforms.push(new Platform(520, 400, 180, 20));
+            platforms.push(new Platform(310, 250, 180, 20));
+            platforms.push(new Platform(150, 120, 150, 20));
+            platforms.push(new Platform(500, 120, 150, 20));
         }
     }
 
@@ -1905,13 +2173,13 @@
     function generateWordLogic(isTargetGuaranteed) {
         let r = Math.random();
         
-        // 2% chance for CVCe Bonus Word
-        if (r < 0.02) {
+        // 15% chance for CVCe Bonus Word (Much more common now!)
+        if (r < 0.15) {
             let text = bonusWords[Math.floor(Math.random() * bonusWords.length)];
             return { text: text, team: 'bonus', isTarget: true, isBonus: true, isDistractor: false };
         }
         // 10% chance for CVC Distractor Word
-        else if (r < 0.12 && !isTargetGuaranteed) {
+        else if (r < 0.25 && !isTargetGuaranteed) {
             let text = distractorWords[Math.floor(Math.random() * distractorWords.length)];
             return { text: text, team: 'distractor', isTarget: false, isBonus: false, isDistractor: true };
         }
@@ -2023,7 +2291,7 @@
         teamsCompletedThisLevel++;
 
         if (teamsCompletedThisLevel >= teams.length) {
-            if (currentLevel < 5) {
+            if (currentLevel < 8) {
                 showIntermission();
             } else {
                 winGame();
@@ -2041,12 +2309,6 @@
         setTimeout(() => targetVowelEl.classList.remove('pulse'), 300);
 
         spawnInitialWords();
-        
-        if(enemies.length < 4) {
-             let availablePlats = platforms.slice(1);
-             enemies.push(new Enemy(availablePlats[Math.floor(Math.random()*availablePlats.length)]));
-        }
-
         updateHUD();
     }
 
@@ -2056,7 +2318,7 @@
         progressEl.innerText = `${wordsCollected} / ${wordsNeeded}`;
         
         let heartsStr = '';
-        for (let i = 0; i < Math.max(3, health); i++) {
+        for (let i = 0; i < maxHealth; i++) {
             heartsStr += i < health ? '♥' : '♡';
         }
         
@@ -2187,7 +2449,7 @@
                 playSound('bonus');
                 score += 500;
                 tokens += 500;
-                if (health < 4) health++; 
+                if (health < maxHealth) health++; 
                 spawnParticles(w.x + w.w/2, w.y + w.h/2, '#facc15');
                 floatingTexts.push(new FloatingText(w.x + w.w/2, w.y, `+500`, "#facc15"));
             } else {
@@ -2346,10 +2608,7 @@
         // Admin Cheat Level Check
         if (playerName.toLowerCase() === 'admin') {
             let selLevel = document.getElementById('level-select').value;
-            if (selLevel === '2') { startNextLevel(2); return; }
-            if (selLevel === '3') { startNextLevel(3); return; }
-            if (selLevel === '4') { startNextLevel(4); return; }
-            if (selLevel === '5') { startNextLevel(5); return; }
+            if (selLevel !== '1') { startNextLevel(parseInt(selLevel)); return; }
         }
 
         // Apply physics based on level
@@ -2367,7 +2626,11 @@
         heartSpawnTimer = 60 * 60; // Reset timer
         shellSpawnTimer = 15 * 60;
         ammo = 0;
+        enemyRespawnTimer = 180;
         
+        gorillaEvent = null; bearEvent = null; weatherHazards = [];
+        eventCooldown = 60 * 30; eventWarningTimer = 0; weatherTimer = 0;
+
         // Reset Tide 
         tideState = 'none';
         tideLevel = canvas.height;
@@ -2434,13 +2697,34 @@
             text2.innerText = "Watch out for rising tides and pinchers! Find shells to throw (Shift/F)!";
             btn.style.backgroundColor = "#38bdf8";
             btn.style.boxShadow = "0 6px 0 #0284c7";
+        } else if (currentLevel === 5) {
+            title.innerText = "LEVEL 6: RAINFOREST!";
+            title.style.color = "#10b981";
+            text1.innerText = "Welcome to the Jungle!";
+            text2.innerText = "Hide behind the big trees if you hear a Gorilla coming!";
+            btn.style.backgroundColor = "#10b981";
+            btn.style.boxShadow = "0 6px 0 #047857";
+        } else if (currentLevel === 6) {
+            title.innerText = "LEVEL 7: THE FOREST!";
+            title.style.color = "#4ade80";
+            text1.innerText = "You escaped the gorilla!";
+            text2.innerText = "Stay under the platforms when the Acorn Storm hits!";
+            btn.style.backgroundColor = "#22c55e";
+            btn.style.boxShadow = "0 6px 0 #166534";
+        } else if (currentLevel === 7) {
+            title.innerText = "LEVEL 8: ALIEN PLANTS!";
+            title.style.color = "#f472b6";
+            text1.innerText = "You survived the forest!";
+            text2.innerText = "Watch out for falling spiky weeds!";
+            btn.style.backgroundColor = "#d946ef";
+            btn.style.boxShadow = "0 6px 0 #86198f";
         }
 
         intermissionScreen.style.display = 'flex';
     }
 
     function applyPhysics(level) {
-        if (level === 1 || level === 5) {
+        if (level === 1 || level === 5 || level === 6 || level === 7 || level === 8) {
             gravity = 0.15; 
             playerJumpPower = -7.0; 
             maxSpeed = 2.4;
@@ -2493,7 +2777,11 @@
         projectiles = [];
         heartSpawnTimer = 60 * 60;
         shellSpawnTimer = 15 * 60;
+        enemyRespawnTimer = 180;
         ammo = 0;
+        
+        gorillaEvent = null; bearEvent = null; weatherHazards = [];
+        eventCooldown = 60 * 30; eventWarningTimer = 0; weatherTimer = 0;
         
         // Reset Tide 
         tideState = 'none';
@@ -2593,8 +2881,6 @@
                 if (tideCooldown <= 0) {
                     tideState = 'warning';
                     tideTimer = 10 * 60; // 10 second warning
-                    // Calculate a dynamic target level between 200 (high) and 400 (low-mid).
-                    // y=180 platforms will always be safe!
                     targetTideLevel = Math.floor(Math.random() * 200) + 200; 
                 }
             } else if (tideState === 'warning') {
@@ -2631,14 +2917,76 @@
             }
         }
         
+        // --- LEVEL 6 GORILLA LOGIC ---
+        if (currentLevel === 6) {
+            eventCooldown--;
+            if (eventCooldown <= 0 && !gorillaEvent) {
+                eventWarningTimer = 180;
+                eventCooldown = 60 * 45;
+            }
+            if (eventWarningTimer > 0) {
+                eventWarningTimer--;
+                if (eventWarningTimer <= 0) gorillaEvent = new GorillaBoss();
+            }
+            if (gorillaEvent) {
+                gorillaEvent.update();
+                if (!gorillaEvent.active) gorillaEvent = null;
+            }
+        }
+        
+        // --- LEVEL 7 & 8 WEATHER/BEAR LOGIC ---
+        if (currentLevel === 7 || currentLevel === 8) {
+            eventCooldown--;
+            if (eventCooldown <= 0) {
+                eventWarningTimer = 180;
+                eventCooldown = 60 * 30; // 30 seconds
+                if (currentLevel === 7) {
+                    nextEventType = Math.random() < 0.5 ? 'bear' : 'acorns';
+                } else {
+                    nextEventType = 'plants';
+                }
+            }
+            if (eventWarningTimer > 0) {
+                eventWarningTimer--;
+                if (eventWarningTimer <= 0) {
+                    if (nextEventType === 'bear') bearEvent = new BearBoss();
+                    else weatherTimer = 60 * 15; // 15 seconds of raining
+                }
+            }
+            if (bearEvent) {
+                bearEvent.update();
+                if (!bearEvent.active) bearEvent = null;
+            }
+            if (weatherTimer > 0) {
+                weatherTimer--;
+                if (weatherTimer % 20 === 0) {
+                    weatherHazards.push(new FallingHazard(nextEventType === 'acorns' ? 'acorn' : 'plant'));
+                }
+            }
+        }
+        
         for (let plat of platforms) plat.update();
         for (let enemy of enemies) enemy.update();
         for (let word of words) word.update();
         for (let heart of heartsList) heart.update();
+        for (let hazard of weatherHazards) hazard.update();
         
         checkWordCollisions();
         checkHeartCollisions();
         checkShellCollisions();
+
+        // Enemy Respawning (All levels)
+        enemyRespawnTimer--;
+        if (enemyRespawnTimer <= 0) {
+            if (enemies.length < 3) {
+                // Find platforms far away from player
+                let validPlats = platforms.slice(1).filter(p => Math.abs(p.x - player.x) > 250);
+                if (validPlats.length > 0) {
+                    enemies.push(new Enemy(validPlats[Math.floor(Math.random() * validPlats.length)]));
+                }
+            }
+            enemyRespawnTimer = Math.random() * 180 + 180; // 3 to 6 seconds
+        }
 
         // Heart Spawn Logic
         heartSpawnTimer--;
@@ -2666,6 +3014,9 @@
         for (let i = projectiles.length - 1; i >= 0; i--) {
             projectiles[i].update();
             if (!projectiles[i].active) projectiles.splice(i, 1);
+        }
+        for (let i = weatherHazards.length - 1; i >= 0; i--) {
+            if (!weatherHazards[i].active) weatherHazards.splice(i, 1);
         }
 
         for (let i = particles.length - 1; i >= 0; i--) {
@@ -2745,32 +3096,6 @@
             ctx.fill();
         }
 
-        // Draw Tide Warnings on UI Layer
-        if (currentLevel === 5) {
-            if (tideState === 'warning') {
-                ctx.fillStyle = '#ef4444';
-                ctx.font = 'bold 36px monospace';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'top';
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = '#000';
-                ctx.fillText('⚠️ TIDE WARNING! GET TO HIGH GROUND! ⚠️', canvas.width/2, 110);
-                ctx.fillStyle = '#fff';
-                ctx.font = 'bold 24px monospace';
-                ctx.fillText(`Water rising in: ${Math.ceil(tideTimer/60)}`, canvas.width/2, 155);
-                ctx.shadowBlur = 0;
-            } else if (tideState === 'clear') {
-                ctx.fillStyle = '#10b981';
-                ctx.font = 'bold 36px monospace';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'top';
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = '#000';
-                ctx.fillText('✅ ALL CLEAR! ✅', canvas.width/2, 110);
-                ctx.shadowBlur = 0;
-            }
-        }
-
         for (let plat of platforms) plat.draw();
         for (let heart of heartsList) heart.draw();
         for (let shell of shellList) shell.draw();
@@ -2779,8 +3104,60 @@
         for (let word of words) word.draw();
         player.draw();
         
+        // Rainforest Trees draw IN FRONT of player
+        for (let t of trees) t.draw();
+        
+        // Bosses draw IN FRONT of trees
+        if (gorillaEvent) gorillaEvent.draw();
+        if (bearEvent) bearEvent.draw();
+        
+        // Weather draws IN FRONT of everything
+        for (let h of weatherHazards) h.draw();
         for (let p of particles) p.draw();
         for (let ft of floatingTexts) ft.draw();
+        
+        // Draw Warnings on top of EVERYTHING
+        if (currentLevel === 5) {
+            if (tideState === 'warning') {
+                ctx.fillStyle = '#ef4444';
+                ctx.font = 'bold 36px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.shadowBlur = 10; ctx.shadowColor = '#000';
+                ctx.fillText('⚠️ TIDE WARNING! GET TO HIGH GROUND! ⚠️', canvas.width/2, 110);
+                ctx.fillStyle = '#fff'; ctx.font = 'bold 24px monospace';
+                ctx.fillText(`Water rising in: ${Math.ceil(tideTimer/60)}`, canvas.width/2, 155);
+                ctx.shadowBlur = 0;
+            } else if (tideState === 'clear') {
+                ctx.fillStyle = '#10b981';
+                ctx.font = 'bold 36px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.shadowBlur = 10; ctx.shadowColor = '#000';
+                ctx.fillText('✅ ALL CLEAR! ✅', canvas.width/2, 110);
+                ctx.shadowBlur = 0;
+            }
+        }
+        
+        if (currentLevel === 6 && eventWarningTimer > 0) {
+            ctx.fillStyle = '#ef4444'; ctx.font = 'bold 36px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.shadowBlur = 10; ctx.shadowColor = '#000';
+            ctx.fillText('⚠️ GORILLA APPROACHING! ⚠️', canvas.width/2, 110);
+            ctx.shadowBlur = 0;
+        }
+        if (currentLevel === 7 && eventWarningTimer > 0) {
+            ctx.fillStyle = '#ef4444'; ctx.font = 'bold 36px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.shadowBlur = 10; ctx.shadowColor = '#000';
+            let warningText = nextEventType === 'bear' ? '⚠️ BEAR INCOMING! JUMP! ⚠️' : '⚠️ ACORN STORM! TAKE COVER! ⚠️';
+            ctx.fillText(warningText, canvas.width/2, 110);
+            ctx.shadowBlur = 0;
+        }
+        if (currentLevel === 8 && eventWarningTimer > 0) {
+            ctx.fillStyle = '#ef4444'; ctx.font = 'bold 36px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.shadowBlur = 10; ctx.shadowColor = '#000';
+            ctx.fillText('⚠️ POISON PLANTS FALLING! TAKE COVER! ⚠️', canvas.width/2, 110);
+            ctx.shadowBlur = 0;
+        }
     }
 
     // Frame Limiter Variables
