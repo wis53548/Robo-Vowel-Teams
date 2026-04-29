@@ -375,6 +375,12 @@
         .leaderboard-list .lb-rank { color: #94a3b8; font-size: 16px; margin-right: 10px; width: 25px; display: inline-block;}
         .leaderboard-list .lb-name { color: #fff; flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .leaderboard-list .lb-score { color: #facc15; font-weight: bold; font-family: monospace; font-size: 20px;}
+        
+        .cat-cb {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -428,13 +434,14 @@
                         <option value="6">Level 6 (Rainforest)</option>
                         <option value="7">Level 7 (Forest)</option>
                         <option value="8">Level 8 (Plant)</option>
+                        <option value="9">Level 9 (City Skies)</option>
                     </select>
                 </div>
                 
                 <div id="start-btn-group" style="display: flex; gap: 20px; margin-top: 10px;">
                     <button class="btn" id="start-btn">PLAY GAME</button>
+                    <button class="btn" id="endless-btn" style="background-color: #a855f7; box-shadow: 0 6px 0 #7e22ce;">ENDLESS CLIMB</button>
                     <button class="btn" id="open-leaderboard-btn" style="background-color: #3b82f6; box-shadow: 0 6px 0 #1d4ed8;">SCORES</button>
-                    <button class="btn" id="settings-btn" style="background-color: #64748b; box-shadow: 0 6px 0 #475569;">SETTINGS</button>
                 </div>
 
                 <!-- Continue Prompt (Hidden by default) -->
@@ -445,6 +452,23 @@
                         <button class="btn" id="new-game-btn" style="background-color: #ef4444; box-shadow: 0 6px 0 #b91c1c;">NEW GAME</button>
                     </div>
                     <button class="btn" id="cancel-continue-btn" style="margin-top: 15px; font-size: 16px; padding: 10px 20px; background-color: #64748b; box-shadow: 0 4px 0 #475569;">CANCEL</button>
+                </div>
+            </div>
+
+            <!-- Category Select Screen for Endless Mode -->
+            <div id="category-select-screen" class="screen" style="display:none; background: rgba(15,23,42,0.95); z-index: 100;">
+                <h1 style="color: #38bdf8;">Endless Climb</h1>
+                <p>Select vowel teams to practice while parkouring up the clouds!</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; margin-bottom: 30px;">
+                    <label style="font-size: 24px;"><input type="checkbox" value="EA" class="cat-cb" checked> EA (leaf, team)</label>
+                    <label style="font-size: 24px;"><input type="checkbox" value="OA" class="cat-cb" checked> OA (boat, goat)</label>
+                    <label style="font-size: 24px;"><input type="checkbox" value="AY" class="cat-cb" checked> AY (play, day)</label>
+                    <label style="font-size: 24px;"><input type="checkbox" value="AI" class="cat-cb" checked> AI (rain, nail)</label>
+                    <label style="font-size: 24px;"><input type="checkbox" value="IGH" class="cat-cb" checked> IGH (high, night)</label>
+                </div>
+                <div style="display: flex; gap: 20px;">
+                    <button class="btn" id="start-endless-btn" style="background-color: #10b981; box-shadow: 0 6px 0 #047857;">START CLIMB!</button>
+                    <button class="btn" id="cancel-endless-btn" style="background-color: #64748b; box-shadow: 0 6px 0 #475569;">CANCEL</button>
                 </div>
             </div>
             
@@ -458,21 +482,6 @@
                     </ul>
                 </div>
                 <button class="btn" id="close-leaderboard-btn">BACK TO MENU</button>
-            </div>
-
-            <!-- Settings Screen -->
-            <div id="settings-screen" class="screen" style="display:none;">
-                <h1 style="color: #38bdf8; margin-bottom: 20px;">Settings</h1>
-                <div style="background: rgba(15, 23, 42, 0.95); border: 3px solid #38bdf8; border-radius: 12px; padding: 30px; width: 400px; max-width: 90%;">
-                    <label style="display: flex; align-items: center; justify-content: space-between; font-size: 24px; color: white; cursor: pointer;">
-                        <span>Use Microphone</span>
-                        <input type="checkbox" id="use-mic-toggle" style="width: 25px; height: 25px; cursor: pointer;">
-                    </label>
-                    <p style="font-size: 16px; color: #94a3b8; margin-top: 15px; text-align: left; line-height: 1.4;">
-                        If disabled, you can just say the word out loud and press Enter to continue without voice recognition.
-                    </p>
-                </div>
-                <button class="btn" id="close-settings-btn" style="margin-top: 30px;">BACK TO MENU</button>
             </div>
 
             <!-- Intermission Screen -->
@@ -518,8 +527,8 @@
 
         <!-- Reading Overlay Modal -->
         <div id="reading-modal">
-            <h2 style="color: #38bdf8; font-size: 48px; margin:0;">Great job!</h2>
-            <p style="font-size: 24px; color: #fff;">Read aloud:</p>
+            <h2 id="reading-title" style="color: #38bdf8; font-size: 48px; margin:0;">Great job!</h2>
+            <p id="reading-subtitle" style="font-size: 24px; color: #fff;">Read aloud:</p>
             <div id="read-word-container"></div>
             <button class="btn" id="read-btn">🎙️ Click to Speak (Enter)</button>
         </div>
@@ -647,7 +656,7 @@
     }
 
     function saveProgress() {
-        if (!playerName || playerName.toLowerCase() === 'admin') return;
+        if (!playerName || playerName.toLowerCase() === 'admin' || currentLevel === 10) return;
 
         const safeName = playerName.toLowerCase();
         const saveData = {
@@ -795,7 +804,6 @@
     const overlay = document.getElementById('overlay');
     const startScreen = document.getElementById('start-screen');
     const leaderboardScreen = document.getElementById('leaderboard-screen');
-    const settingsScreen = document.getElementById('settings-screen');
     const intermissionScreen = document.getElementById('intermission-screen');
     const winScreen = document.getElementById('win-screen');
     const gameOverScreen = document.getElementById('game-over-screen');
@@ -811,9 +819,6 @@
     const readingModal = document.getElementById('reading-modal');
     const readWordContainer = document.getElementById('read-word-container');
     const readBtn = document.getElementById('read-btn');
-    const settingsBtn = document.getElementById('settings-btn');
-    const closeSettingsBtn = document.getElementById('close-settings-btn');
-    const useMicToggle = document.getElementById('use-mic-toggle');
 
     // Store & Menu UI Elements
     const storeBtn = document.getElementById('store-btn');
@@ -823,6 +828,11 @@
     const closeStoreBtn = document.getElementById('close-store-btn');
     const storeContent = document.getElementById('store-content');
     const shopTokensEl = document.getElementById('shop-tokens');
+
+    // Endless UI Elements
+    const categorySelectScreen = document.getElementById('category-select-screen');
+    const startEndlessBtn = document.getElementById('start-endless-btn');
+    const cancelEndlessBtn = document.getElementById('cancel-endless-btn');
 
     // =========================================================================================
     // === CAR BACKGROUND URLS - EDIT THESE LINKS IF THE PICTURES DON'T LOAD ===================
@@ -948,6 +958,10 @@
                 container.style.background = 'linear-gradient(to bottom, #0284c7, #166534)'; // Forest Sky
             } else if (currentLevel === 8) {
                 container.style.background = 'linear-gradient(to bottom, #4a044e, #86198f)'; // Plant level
+            } else if (currentLevel === 9) {
+                container.style.background = 'linear-gradient(to bottom, #f59e0b, #4338ca)'; // City Sunset
+            } else if (currentLevel === 10) {
+                container.style.background = 'linear-gradient(to bottom, #0ea5e9, #38bdf8)'; // Endless sky
             }
             container.style.backgroundSize = '';
             container.style.backgroundPosition = '';
@@ -1100,11 +1114,50 @@
     // Reading multi-word state
     let currentReadingWords = [];
     let currentReadingIndex = 0;
+    
+    // Endless mode state
+    let isEndless = false;
+    let endlessCategories = [];
+    let isSavingLife = false;
+    let failedAttempts = 0; // Tracks failed voice attempts
 
-    // Setting for Voice Recognition
-    let useMic = localStorage.getItem('vowelTeamUseMic') !== 'false';
+    const looseMatches = {
+        'sea': ['see', 'c', 'seat', 'seed', 'she'],
+        'tea': ['tee', 't', 'key', 'he'],
+        'read': ['red', 'reed', 'ready', 'real'],
+        'meat': ['meet', 'me', 'meant'],
+        'sail': ['sale', 'sell', 'cell'],
+        'tail': ['tale', 'tell', 'till'],
+        'pail': ['pale', 'hell', 'pill', 'peel', 'pal'],
+        'pain': ['pane', 'pen', 'pan', 'pin'],
+        'rain': ['reign', 'ran', 'ring', 'run'],
+        'brain': ['brian', 'bran', 'bring'],
+        'plain': ['plane', 'plan', 'playing'],
+        'main': ['mane', 'man', 'men'],
+        'wait': ['weight', 'wet', 'what', 'white'],
+        'bait': ['bate', 'bet', 'bat', 'bit'],
+        'way': ['weigh', 'why', 'we'],
+        'day': ['they', 'the', 'there'],
+        'say': ['see', 'so'],
+        'right': ['write', 'white', 'ride', 'rate'],
+        'sight': ['site', 'side', 'sit'],
+        'night': ['nite', 'nice', 'not'],
+        'might': ['mite', 'my', 'mate'],
+        'high': ['hi', 'hide', 'how'],
+        'boat': ['bought', 'bot', 'both', 'vote', 'but'],
+        'coat': ['quote', 'caught', 'cot', 'cut'],
+        'goat': ['got', 'go', 'good'],
+        'road': ['rode', 'rod', 'ride', 'red'],
+        'toad': ['towed', 'told', 'toe', 'too'],
+        'bake': ['baked', 'back', 'bag'],
+        'make': ['made', 'mac', 'may'],
+        'lake': ['late', 'lack', 'like'],
+        'time': ['tom', 'tie', 'tin'],
+        'home': ['hum', 'who'],
+        'note': ['not', 'nut', 'no']
+    };
 
-    // Physics Engine Variables (Locked to the slower, weightier physics!)
+    // Physics Engine Variables
     let gravity = 0.15; 
     let friction = 0.85; 
     let acceleration = 0.4;
@@ -1172,10 +1225,44 @@
             if (this.x > canvas.width) this.x = -this.w;
             if (this.x + this.w < 0) this.x = canvas.width;
 
+            // Endless Camera Scroll Logic
+            if (currentLevel === 10) {
+                if (this.y < 300) {
+                    let diff = 300 - this.y;
+                    this.y = 300;
+                    platforms.forEach(p => p.y += diff);
+                    words.forEach(w => w.y += diff);
+                    enemies.forEach(e => e.y += diff);
+                    particles.forEach(p => p.y += diff);
+                    floatingTexts.forEach(f => f.y += diff);
+                    projectiles.forEach(p => p.y += diff);
+                    heartsList.forEach(h => h.y += diff);
+                    score += Math.floor(diff / 10); // get points for climbing!
+                }
+                
+                // Cleanup things that fall off bottom
+                platforms = platforms.filter(p => p.y < canvas.height + 100);
+                words = words.filter(w => w.y < canvas.height + 100);
+                enemies = enemies.filter(e => e.y < canvas.height + 100);
+            }
+
+            // Fall off bottom of screen
             if (this.y > canvas.height) {
-                takeDamage();
-                this.y = 0;
-                this.vy = 0;
+                if (currentLevel === 10) {
+                    if (health > 0) {
+                        health--;
+                        this.vy = 0;
+                        this.y = canvas.height + 100; // hide temporarily
+                        triggerSaveLife();
+                    } else {
+                        takeDamage();
+                        this.y = 0; this.vy = 0;
+                    }
+                } else {
+                    takeDamage();
+                    this.y = 0;
+                    this.vy = 0;
+                }
             }
 
             if (this.invulnerableTimer > 0) this.invulnerableTimer--;
@@ -1200,7 +1287,6 @@
                     
                     if (isHorizontal) {
                         // Only snap to sides if the player is generally "beside" the platform
-                        // This prevents glitching when bumping head or toes on corners!
                         if (this.y + this.h <= plat.y + 8 || this.y >= plat.y + plat.h - 8) continue;
 
                         if (this.vx > 0 && oldX + this.w <= plat.x + 0.1) {
@@ -1257,7 +1343,6 @@
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'bottom';
                 let hatHearts = '';
-                // Will always show 4 slots if maxHealth is 4
                 for (let i = 0; i < maxHealth; i++) {
                     hatHearts += i < health ? '♥' : '♡';
                 }
@@ -1535,6 +1620,8 @@
             else if (currentLevel === 6) { this.color = '#047857'; this.baseColor = '#451a03'; } // Rainforest
             else if (currentLevel === 7) { this.color = '#22c55e'; this.baseColor = '#78350f'; } // Forest
             else if (currentLevel === 8) { this.color = '#f472b6'; this.baseColor = '#701a75'; } // Plant
+            else if (currentLevel === 9) { this.color = '#94a3b8'; this.baseColor = '#475569'; } // City
+            else if (currentLevel === 10) { this.color = '#ffffff'; this.baseColor = '#e0f2fe'; } // Endless Clouds
 
             this.isMoving = isMoving;
             this.isMovingVert = isMovingVert;
@@ -1560,6 +1647,19 @@
         }
 
         draw() {
+            if (currentLevel === 10) {
+                // Clouds
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(this.x + 20, this.y + 10, 15, 0, Math.PI*2);
+                ctx.arc(this.x + this.w - 20, this.y + 10, 15, 0, Math.PI*2);
+                ctx.arc(this.x + this.w/2, this.y + 5, 20, 0, Math.PI*2);
+                // fill rest
+                ctx.fillRect(this.x + 20, this.y, this.w - 40, 20);
+                ctx.fill();
+                return;
+            }
+
             ctx.fillStyle = this.baseColor;
             ctx.fillRect(this.x, this.y, this.w, this.h);
             ctx.fillStyle = this.color;
@@ -1720,10 +1820,45 @@
         }
     }
 
+    class PlaneBoss {
+        constructor() {
+            this.w = 60;
+            this.h = 20;
+            let spawnLeft = Math.random() < 0.5;
+            this.x = spawnLeft ? -100 : canvas.width + 100;
+            this.y = 50 + Math.random() * 50;
+            this.vx = spawnLeft ? 4 : -4;
+            this.active = true;
+            this.dropTimer = 30; // drop a hammer periodically
+        }
+        update() {
+            this.x += this.vx;
+            this.dropTimer--;
+            if (this.dropTimer <= 0 && Math.abs((this.x+this.w/2) - (player.x+player.w/2)) < 150) {
+                weatherHazards.push(new FallingHazard('hammer', this.x + this.w/2, this.y + this.h));
+                this.dropTimer = 45; // Cooldown
+                playSound('throw');
+            }
+            if (this.x > canvas.width + 150 || this.x < -150) this.active = false;
+        }
+        draw() {
+            ctx.fillStyle = '#cbd5e1';
+            ctx.beginPath();
+            ctx.ellipse(this.x + this.w/2, this.y + this.h/2, 30, 10, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = '#ef4444'; // wings
+            ctx.fillRect(this.x + 20, this.y - 5, 20, 30);
+            ctx.fillStyle = '#0f172a'; // cockpit
+            ctx.beginPath();
+            ctx.arc(this.x + (this.vx > 0 ? 45 : 15), this.y + 5, 5, 0, Math.PI*2);
+            ctx.fill();
+        }
+    }
+
     class FallingHazard {
-        constructor(type) {
-            this.x = Math.random() * canvas.width; 
-            this.y = -20;
+        constructor(type, startX = null, startY = -20) {
+            this.x = startX !== null ? startX : Math.random() * canvas.width; 
+            this.y = startY;
             this.w = 16; 
             this.h = 16; 
             this.vy = 3 + Math.random() * 3;
@@ -1732,12 +1867,9 @@
         }
         update() {
             this.y += this.vy;
-            for (let p of platforms) {
-                if (this.x < p.x + p.w && this.x + this.w > p.x && this.y + this.h > p.y && this.y < p.y + p.h) {
-                    this.active = false; // hit platform (player is safe under it!)
-                }
-            }
-            if (this.y > canvas.height) this.active = false;
+            // No longer stops at platforms for Acorns or Thorns! They fall straight to ground.
+            
+            if (this.y > canvas.height + 50) this.active = false;
 
             if (this.active && player.invulnerableTimer === 0 &&
                 player.x < this.x + this.w && player.x + player.w > this.x &&
@@ -1754,14 +1886,20 @@
                 ctx.fillStyle = '#451a03'; // cap
                 ctx.beginPath(); ctx.arc(this.x+8, this.y+6, 8, Math.PI, 0); ctx.fill();
             }
-            if (this.type === 'plant') { 
-                ctx.fillStyle = '#a855f7'; 
-                ctx.beginPath(); ctx.arc(this.x+8, this.y+8, 8, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = '#4ade80'; // glowing spots
-                ctx.beginPath(); ctx.arc(this.x+5, this.y+5, 2, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(this.x+11, this.y+11, 2, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = 'rgba(168, 85, 247, 0.3)'; // trail
-                ctx.beginPath(); ctx.arc(this.x+8, this.y-5, 6, 0, Math.PI*2); ctx.fill();
+            else if (this.type === 'plant' || this.type === 'thorn') { 
+                // Draw a grey/metallic spike
+                ctx.fillStyle = '#94a3b8'; 
+                ctx.beginPath();
+                ctx.moveTo(this.x + 8, this.y + 16);
+                ctx.lineTo(this.x + 16, this.y);
+                ctx.lineTo(this.x, this.y);
+                ctx.fill();
+            }
+            else if (this.type === 'hammer') {
+                ctx.fillStyle = '#78350f'; // wooden handle
+                ctx.fillRect(this.x + 6, this.y, 4, 16);
+                ctx.fillStyle = '#64748b'; // metal head
+                ctx.fillRect(this.x, this.y + 12, 16, 8);
             }
         }
     }
@@ -1780,7 +1918,7 @@
             this.bobOffset = Math.random() * Math.PI * 2;
             this.active = true;
             
-            this.isFloating = (currentLevel === 2);
+            this.isFloating = (currentLevel === 2 || currentLevel === 10);
             this.vx = this.isFloating ? ((Math.random() - 0.5) * 1.5) : 0;
             this.vy = this.isFloating ? ((Math.random() - 0.5) * 1.5) : 0;
             
@@ -1798,10 +1936,10 @@
         update() {
             if (this.isFloating) {
                 this.x += this.vx;
-                this.y += this.vy;
+                if (currentLevel !== 10) this.y += this.vy; // Endless handles its own Y scrolling
                 
                 if (this.x < 0 || this.x + this.w > canvas.width) this.vx *= -1;
-                if (this.y < 50 || this.y + this.h > canvas.height - 60) this.vy *= -1;
+                if (currentLevel !== 10 && (this.y < 50 || this.y + this.h > canvas.height - 60)) this.vy *= -1;
             } else {
                 this.bobOffset += 0.05;
             }
@@ -1958,6 +2096,8 @@
             else if (currentLevel === 6) this.color = '#84cc16'; // Snake
             else if (currentLevel === 7) this.color = '#1e293b'; // Bug
             else if (currentLevel === 8) this.color = '#4ade80'; // Chomper
+            else if (currentLevel === 9) this.color = '#38bdf8'; // Drone
+            else if (currentLevel === 10) this.color = '#a855f7'; // Cloud Monster
         }
 
         update() {
@@ -1967,7 +2107,8 @@
                 this.stateTimer--;
                 if (this.stateTimer <= 0) {
                     this.isClosed = !this.isClosed;
-                    this.stateTimer = this.isClosed ? 60 : 120; // closed 1s, open 2s
+                    // Much longer closed time (3 seconds), open (2 seconds)
+                    this.stateTimer = this.isClosed ? 180 : 120; 
                 }
             }
             
@@ -1982,7 +2123,8 @@
                 if (this.x + this.w > this.plat.x + this.plat.w) this.x = this.plat.x + this.plat.w - this.w;
             }
 
-            if (currentLevel === 2) {
+            if (currentLevel === 2 || currentLevel === 10) {
+                // Cloud/Space monsters hop slightly
                 this.y += this.vy;
                 this.vy += gravity; 
                 if (this.y + this.h > this.plat.y) {
@@ -2066,23 +2208,24 @@
                 ctx.beginPath(); ctx.arc(this.x + this.w/2 + 4 + lookDir, this.y + 4 + bob, 1.5, 0, Math.PI*2); ctx.fill();
                 return;
             } else if (currentLevel === 6) {
-                // Better Snake
+                // Tighter, less wavy Snake
                 ctx.strokeStyle = this.color;
                 ctx.lineWidth = 6;
                 ctx.lineCap = 'round';
                 ctx.beginPath();
                 ctx.moveTo(this.x, this.y + this.h);
-                for(let i=0; i<this.w; i+=4) ctx.lineTo(this.x + i, this.y + this.h - 4 + Math.sin(i*0.4 + Date.now()/100)*6);
+                // Reduced amplitude of sine wave from 6 to 3
+                for(let i=0; i<this.w; i+=4) ctx.lineTo(this.x + i, this.y + this.h - 4 + Math.sin(i*0.2 + Date.now()/200)*3);
                 ctx.stroke();
                 // Head
                 ctx.fillStyle = this.color;
-                ctx.beginPath(); ctx.arc(this.x + (this.vx>0?this.w:0), this.y + this.h - 6 + Math.sin((this.w)*0.4 + Date.now()/100)*6, 6, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(this.x + (this.vx>0?this.w:0), this.y + this.h - 6 + Math.sin((this.w)*0.2 + Date.now()/200)*3, 6, 0, Math.PI*2); ctx.fill();
                 // Eye
-                ctx.fillStyle = '#facc15'; ctx.beginPath(); ctx.arc(this.x + (this.vx>0?this.w+2:-2), this.y + this.h - 8 + Math.sin((this.w)*0.4 + Date.now()/100)*6, 2, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#facc15'; ctx.beginPath(); ctx.arc(this.x + (this.vx>0?this.w+2:-2), this.y + this.h - 8 + Math.sin((this.w)*0.2 + Date.now()/200)*3, 2, 0, Math.PI*2); ctx.fill();
                 // Tongue
                 ctx.strokeStyle = '#ef4444'; ctx.lineWidth=2;
-                ctx.beginPath(); ctx.moveTo(this.x + (this.vx>0?this.w+6:-6), this.y + this.h - 6 + Math.sin((this.w)*0.4 + Date.now()/100)*6); 
-                ctx.lineTo(this.x + (this.vx>0?this.w+10:-10), this.y + this.h - 6 + Math.sin((this.w)*0.4 + Date.now()/100)*6); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(this.x + (this.vx>0?this.w+6:-6), this.y + this.h - 6 + Math.sin((this.w)*0.2 + Date.now()/200)*3); 
+                ctx.lineTo(this.x + (this.vx>0?this.w+10:-10), this.y + this.h - 6 + Math.sin((this.w)*0.2 + Date.now()/200)*3); ctx.stroke();
                 return;
             } else if (currentLevel === 7) {
                 // Bug
@@ -2199,7 +2342,7 @@
     
     // --- Timers & Level Specific Events ---
     let ammo = 0;
-    let heartSpawnTimer = 60 * 60; // Approx 60 seconds at 60fps
+    let heartSpawnTimer = 30 * 60; 
     let shellSpawnTimer = 15 * 60; // 15 seconds
     let enemyRespawnTimer = 180;
     
@@ -2209,9 +2352,10 @@
     let targetTideLevel = 400;
     let tideCooldown = 60 * 45; // 45 seconds
     
-    // Level 6-8 Events
+    // Level 6-9 Events
     let gorillaEvent = null;
     let bearEvent = null;
+    let planeEvent = null;
     let weatherHazards = [];
     let eventCooldown = 60 * 45;
     let eventWarningTimer = 0;
@@ -2227,9 +2371,19 @@
     function buildLevel() {
         platforms = [];
         trees = [];
+        
+        if (currentLevel === 10) {
+            // Endless initial platforms - place player start platform directly under them!
+            platforms.push(new Platform(canvas.width/2 - 100, canvas.height - 50, 200, 20)); // Base platform
+            platforms.push(new Platform(300, canvas.height - 200, 200, 20));
+            platforms.push(new Platform(150, canvas.height - 350, 150, 20));
+            platforms.push(new Platform(400, canvas.height - 500, 150, 20));
+            return;
+        }
+
         platforms.push(new Platform(-100, 550, 1000, 50));
 
-        if (currentLevel === 1 || currentLevel === 3 || currentLevel === 5 || currentLevel === 6 || currentLevel === 8) {
+        if (currentLevel === 1 || currentLevel === 3 || currentLevel === 5 || currentLevel === 6 || currentLevel === 8 || currentLevel === 9) {
             // Standard Layout
             platforms.push(new Platform(150, 420, 150, 20));
             platforms.push(new Platform(500, 420, 150, 20));
@@ -2279,13 +2433,13 @@
     function generateWordLogic(isTargetGuaranteed) {
         let r = Math.random();
         
-        // 15% chance for CVCe Bonus Word
-        if (r < 0.15) {
+        // 25% chance for CVCe Bonus Word
+        if (r < 0.25) {
             let text = bonusWords[Math.floor(Math.random() * bonusWords.length)];
             return { text: text, team: 'bonus', isTarget: true, isBonus: true, isDistractor: false };
         }
         // 10% chance for CVC Distractor Word
-        else if (r < 0.25 && !isTargetGuaranteed) {
+        else if (r < 0.35 && !isTargetGuaranteed) {
             let text = distractorWords[Math.floor(Math.random() * distractorWords.length)];
             return { text: text, team: 'distractor', isTarget: false, isBonus: false, isDistractor: true };
         }
@@ -2300,6 +2454,7 @@
 
     function spawnInitialWords() {
         words = [];
+        if (currentLevel === 10) return; // Handled dynamically
         
         let availablePoints = spawnPoints.filter(pt => {
             if (!player) return true;
@@ -2320,6 +2475,8 @@
     }
 
     function spawnSingleWord() {
+        if (currentLevel === 10) return;
+
         let emptyPoints = spawnPoints.filter(pt => {
             let isOccupied = words.some(w => Math.abs(w.x - pt.x) < 50 && Math.abs(w.y - pt.y) < 50);
             let isPlayerNear = false;
@@ -2342,6 +2499,7 @@
 
     function spawnEnemies() {
         enemies = [];
+        if (currentLevel === 10) return;
         let availablePlats = platforms.slice(1); 
         for(let i=0; i<2; i++) {
             let plat = availablePlats[Math.floor(Math.random()*availablePlats.length)];
@@ -2372,12 +2530,30 @@
         }
     }
 
+    function triggerSaveLife() {
+        gameState = 'reading';
+        isSavingLife = true;
+        failedAttempts = 0;
+        keys.left = keys.right = keys.up = false;
+        
+        currentReadingWords = [];
+        for (let i=0; i<5; i++) {
+            let team = endlessCategories[Math.floor(Math.random() * endlessCategories.length)];
+            currentReadingWords.push(getRandomWord(team));
+        }
+        currentReadingIndex = 0;
+        
+        document.getElementById('reading-title').innerText = "SAVE YOUR LIFE!";
+        document.getElementById('reading-subtitle').innerText = "Read 5 words to recover!";
+        
+        renderCurrentReadingWord();
+    }
+
     function takeDamage() {
         if (player.invulnerableTimer > 0) return;
         health--;
         playSound('wrong');
         
-        // Slightly reduced knockback speed so you don't fly off the map
         player.vy = -5; 
         player.vx = (player.facingRight ? -4 : 4);
         player.invulnerableTimer = 180; 
@@ -2396,8 +2572,20 @@
     function cycleTargetTeam() {
         teamsCompletedThisLevel++;
 
+        if (currentLevel === 10) {
+            // Endless mode just picks a new random one
+            currentTargetTeam = endlessCategories[Math.floor(Math.random() * endlessCategories.length)];
+            wordsCollected = 0;
+            targetVowelEl.innerText = currentTargetTeam.toLowerCase();
+            targetVowelEl.classList.add('pulse');
+            setTimeout(() => targetVowelEl.classList.remove('pulse'), 300);
+            playSound('levelup');
+            updateHUD();
+            return;
+        }
+
         if (teamsCompletedThisLevel >= teams.length) {
-            if (currentLevel < 8) {
+            if (currentLevel < 9) {
                 showIntermission();
             } else {
                 winGame();
@@ -2416,7 +2604,7 @@
 
         spawnInitialWords();
         
-        if(enemies.length < 4) {
+        if(enemies.length < 2) {
              let availablePlats = platforms.slice(1);
              enemies.push(new Enemy(availablePlats[Math.floor(Math.random()*availablePlats.length)]));
         }
@@ -2427,7 +2615,12 @@
     function updateHUD() {
         scoreEl.innerText = score;
         tokensEl.innerText = tokens;
-        progressEl.innerText = `${wordsCollected} / ${wordsNeeded}`;
+        
+        if (currentLevel === 10) {
+            progressEl.innerText = `Climbing`;
+        } else {
+            progressEl.innerText = `${wordsCollected} / ${wordsNeeded}`;
+        }
         
         let heartsStr = '';
         for (let i = 0; i < maxHealth; i++) {
@@ -2447,7 +2640,6 @@
             document.getElementById('ammo-hud').style.display = 'none';
         }
 
-        // Auto-save whenever the HUD updates
         saveProgress(); 
     }
     
@@ -2513,7 +2705,6 @@
     }
 
     window.handleShopClick = function(category, itemId) {
-        // Ensure legacy saves populate the array
         if (!unlocks[category]) unlocks[category] = [];
 
         let isUnlocked = unlocks[category].includes(itemId);
@@ -2524,14 +2715,14 @@
             if (category === 'backgrounds') updateBackground();
             playSound('jump');
             renderStore();
-            updateHUD(); // Rerender HUD in case they swapped the heart hat
+            updateHUD(); 
         } else {
             // Buy
             let item = shopItems[category].find(i => i.id === itemId);
             if (tokens >= item.cost) {
                 tokens -= item.cost;
                 unlocks[category].push(itemId);
-                equipped[category] = itemId; // Auto equip
+                equipped[category] = itemId; 
                 if (category === 'backgrounds') updateBackground();
                 playSound('coin');
                 updateHUD();
@@ -2551,11 +2742,7 @@
         readingModal.style.display = 'flex';
         
         // Reset button state for the new word
-        if (useMic && (window.SpeechRecognition || window.webkitSpeechRecognition)) {
-            readBtn.innerText = "🎙️ Click to Speak (Enter)";
-        } else {
-            readBtn.innerText = "✅ I read it! (Enter)";
-        }
+        readBtn.innerText = "🎙️ Click to Speak (Enter)";
         readBtn.style.backgroundColor = "#e94560";
     }
 
@@ -2586,6 +2773,7 @@
             updateHUD();
 
             gameState = 'reading';
+            failedAttempts = 0;
             currentReadingWords = [w.text];
             if (!w.isBonus) {
                 for(let k = 1; k < w.multiplier; k++) {
@@ -2593,6 +2781,10 @@
                 }
             }
             currentReadingIndex = 0;
+            
+            // Revert titles if they were stuck on Save Life
+            document.getElementById('reading-title').innerText = "Great job!";
+            document.getElementById('reading-subtitle').innerText = "Read aloud:";
             
             renderCurrentReadingWord();
         } else {
@@ -2612,7 +2804,6 @@
                 
                 // If player is invincible, IGNORE ALL words completely!
                 if (player.invulnerableTimer > 0) {
-                    // Gently push floating words away so they don't hover on the player
                     if (w.isFloating) {
                         w.vx = (w.x + w.w/2 > player.x + player.w/2) ? 1.5 : -1.5;
                         w.vy = (w.y + w.h/2 > player.y + player.h/2) ? 1.5 : -1.5;
@@ -2675,49 +2866,63 @@
             keys.left = keys.right = keys.up = false; 
             player.invulnerableTimer = 180; 
 
-            if (wordsCollected >= wordsNeeded) {
-                cycleTargetTeam();
+            if (isSavingLife) {
+                isSavingLife = false;
+                health++; // give the life back
+                player.x = canvas.width / 2;
+                player.y = canvas.height / 2 - 100;
+                player.vy = 0;
+                // generate a solid cloud right under player
+                platforms.push(new Platform(player.x - 100, player.y + 40, 200, 20));
+                updateHUD();
             } else {
-                spawnSingleWord();
+                if (currentLevel !== 10 && wordsCollected >= wordsNeeded) {
+                    cycleTargetTeam();
+                } else if (currentLevel === 10 && wordsCollected >= wordsNeeded) {
+                    cycleTargetTeam(); // Endless handles its own cycle
+                } else {
+                    spawnSingleWord();
+                }
             }
         }
     }
 
     // --- Main Game Flow ---
-    function initGame(isContinue = false) {
+    function initGame(isContinue = false, runEndless = false) {
         let inputName = nameInput.value.trim();
         playerName = inputName !== '' ? inputName : 'Friend';
 
         initAudio();
         
-        if (isContinue && pendingSaveData) {
+        isEndless = runEndless;
+        
+        if (isContinue && pendingSaveData && !isEndless) {
             score = pendingSaveData.score || 0;
-            tokens = pendingSaveData.tokens || score; // Legacy saves don't have tokens, copy score
+            tokens = pendingSaveData.tokens || score; 
             unlocks = pendingSaveData.unlocks || unlocks;
             equipped = pendingSaveData.equipped || equipped;
 
-            // Retroactive save fix for missing background category
             if (!unlocks.backgrounds) unlocks.backgrounds = ['bg0'];
             if (!equipped.backgrounds) equipped.backgrounds = 'bg0';
-            
-            // Catch old save format
             if (equipped.backgrounds === 'none' || equipped.backgrounds === 'default') equipped.backgrounds = 'bg0';
 
             currentLevel = pendingSaveData.currentLevel || 1;
             currentTargetTeamIndex = pendingSaveData.currentTargetTeamIndex || 0;
             teamsCompletedThisLevel = pendingSaveData.teamsCompletedThisLevel || 0;
             wordsCollected = pendingSaveData.wordsCollected || 0;
-            health = 3; // Refill health on continue
+            health = 3; 
         } else {
             score = 0;
-            tokens = 0;
+            if (!isEndless) tokens = 0; // Keep tokens if just restarting endless
             health = 3;
-            currentLevel = 1;
+            currentLevel = isEndless ? 10 : 1;
             teamsCompletedThisLevel = 0;
             currentTargetTeamIndex = 0;
             wordsCollected = 0;
-            unlocks = { backgrounds: ['bg0'], colors: ['#facc15'], tops: ['ball'], eyes: ['square'], wheels: ['treads'] };
-            equipped = { backgrounds: 'bg0', colors: '#facc15', tops: 'ball', eyes: 'square', wheels: 'treads' };
+            if (!isContinue) {
+               unlocks = { backgrounds: ['bg0'], colors: ['#facc15'], tops: ['ball'], eyes: ['square'], wheels: ['treads'] };
+               equipped = { backgrounds: 'bg0', colors: '#facc15', tops: 'ball', eyes: 'square', wheels: 'treads' };
+            }
         }
 
         if (playerName.toLowerCase() === 'admin') {
@@ -2726,15 +2931,18 @@
         }
 
         // Admin Cheat Level Check
-        if (playerName.toLowerCase() === 'admin') {
+        if (playerName.toLowerCase() === 'admin' && !isEndless) {
             let selLevel = document.getElementById('level-select').value;
             if (selLevel !== '1') { startNextLevel(parseInt(selLevel)); return; }
         }
 
-        // Apply physics based on level
         applyPhysics(currentLevel);
         
-        currentTargetTeam = teams[currentTargetTeamIndex % teams.length];
+        if (isEndless) {
+            currentTargetTeam = endlessCategories[Math.floor(Math.random() * endlessCategories.length)];
+        } else {
+            currentTargetTeam = teams[currentTargetTeamIndex % teams.length];
+        }
         
         player = new Player();
         targetVowelEl.innerText = currentTargetTeam.toLowerCase(); 
@@ -2744,7 +2952,7 @@
         shellList = [];
         projectiles = [];
         
-        gorillaEvent = null; bearEvent = null; weatherHazards = [];
+        gorillaEvent = null; bearEvent = null; planeEvent = null; weatherHazards = [];
         eventCooldown = 60 * 30; eventWarningTimer = 0; weatherTimer = 0;
 
         // Reset Tide 
@@ -2753,22 +2961,24 @@
         targetTideLevel = 400;
         
         updateBackground();
-        
         buildLevel();
-        spawnInitialWords();
-        spawnEnemies();
+        
+        if (!isEndless) {
+            spawnInitialWords();
+            spawnEnemies();
+        }
+        
         updateHUD();
         
         gameState = 'playing';
         overlay.style.display = 'none';
         
-        // Hide all screens
         startScreen.style.display = 'none';
+        categorySelectScreen.style.display = 'none';
         gameOverScreen.style.display = 'none';
         winScreen.style.display = 'none';
         intermissionScreen.style.display = 'none';
         leaderboardScreen.style.display = 'none';
-        settingsScreen.style.display = 'none';
         readingModal.style.display = 'none';
         storeModal.style.display = 'none';
 
@@ -2834,13 +3044,20 @@
             text2.innerText = "Watch out for falling spiky weeds!";
             btn.style.backgroundColor = "#d946ef";
             btn.style.boxShadow = "0 6px 0 #86198f";
+        } else if (currentLevel === 8) {
+            title.innerText = "LEVEL 9: CITY SKIES!";
+            title.style.color = "#fbbf24";
+            text1.innerText = "You escaped the wilderness!";
+            text2.innerText = "Watch out for the plane dropping hammers from above!";
+            btn.style.backgroundColor = "#f59e0b";
+            btn.style.boxShadow = "0 6px 0 #b45309";
         }
 
         intermissionScreen.style.display = 'flex';
     }
 
     function applyPhysics(level) {
-        if (level === 1 || level === 5 || level === 6 || level === 7 || level === 8) {
+        if (level === 1 || level === 5 || level === 6 || level === 7 || level === 8 || level === 9 || level === 10) {
             gravity = 0.15; 
             playerJumpPower = -7.0; 
             maxSpeed = 2.4;
@@ -2853,14 +3070,12 @@
             acceleration = 0.25; 
             friction = 0.85;
         } else if (level === 3) {
-            // Ice Level: very slippery!
             gravity = 0.15; 
             playerJumpPower = -7.0; 
             maxSpeed = 3.2; 
             acceleration = 0.15; 
             friction = 0.98;
         } else if (level === 4) {
-            // Volcano: Normalish physics, slightly heavier
             gravity = 0.15; 
             playerJumpPower = -7.0; 
             maxSpeed = 2.4; 
@@ -2891,12 +3106,12 @@
         heartsList = [];
         shellList = [];
         projectiles = [];
-        heartSpawnTimer = 60 * 60;
+        heartSpawnTimer = 20 * 60;
         shellSpawnTimer = 15 * 60;
-        enemyRespawnTimer = 180;
+        enemyRespawnTimer = 60;
         ammo = 0;
         
-        gorillaEvent = null; bearEvent = null; weatherHazards = [];
+        gorillaEvent = null; bearEvent = null; planeEvent = null; weatherHazards = [];
         eventCooldown = 60 * 30; eventWarningTimer = 0; weatherTimer = 0;
         
         // Reset Tide 
@@ -2906,7 +3121,6 @@
         tideCooldown = 60 * 45;
         
         updateBackground();
-        
         buildLevel();
         spawnInitialWords();
         spawnEnemies();
@@ -2952,19 +3166,16 @@
         targetDisplay.style.display = 'none';
         storeModal.style.display = 'none';
         readingModal.style.display = 'none';
+        categorySelectScreen.style.display = 'none';
         
-        // Ensure overlay is standard background
         overlay.style.display = 'flex';
         overlay.style.backgroundColor = 'rgba(0,0,0,0.85)';
         
-        // Hide other screens
         gameOverScreen.style.display = 'none';
         winScreen.style.display = 'none';
         intermissionScreen.style.display = 'none';
         leaderboardScreen.style.display = 'none';
-        settingsScreen.style.display = 'none';
         
-        // Show start screen and reset menus
         startScreen.style.display = 'flex';
         document.getElementById('start-btn-group').style.display = 'flex';
         document.getElementById('continue-prompt').style.display = 'none';
@@ -2972,7 +3183,6 @@
             document.getElementById('admin-controls').style.display = 'block';
         }
         
-        // Stop movement
         keys.left = keys.right = keys.up = false; 
     }
 
@@ -2991,46 +3201,76 @@
 
         player.update();
         
+        // --- Endless Cloud Generation ---
+        if (currentLevel === 10) {
+            let highestPlat = platforms.reduce((highest, p) => p.y < highest.y ? p : highest, platforms[0]);
+            if (highestPlat && highestPlat.y > -100) {
+                // Generate next cloud ensuring it's within jump distance
+                let maxJumpDistX = 220;
+                let w = Math.random() * 80 + 100; // 100 to 180 wide
+                
+                // Keep X within reachable distance of highestPlat
+                let minX = Math.max(0, highestPlat.x - maxJumpDistX);
+                let maxX = Math.min(canvas.width - w, highestPlat.x + highestPlat.w + maxJumpDistX);
+                let x = minX + Math.random() * (maxX - minX);
+                
+                let y = highestPlat.y - (Math.random() * 40 + 90); // Y distance between 90 and 130
+                platforms.push(new Platform(x, y, w, 20));
+                
+                // Spawn a word occasionally
+                if (Math.random() < 0.6) {
+                    let isTarget = (words.filter(w => w.isTarget).length < 2) || Math.random() < 0.3;
+                    let logic = generateWordLogic(isTarget); 
+                    
+                    // Target words spawn safely above platform. Distractors spawn high up so you can go under them.
+                    let wordY = logic.isTarget ? y - 45 : y - 110; 
+                    let wordX = x + w/2 - 40;
+                    words.push(new WordItem(wordX, wordY, logic.text, logic.team, logic.isTarget, logic.isBonus, logic.isDistractor));
+                }
+                
+                // Spawn enemy occasionally
+                if (Math.random() < 0.2 && enemies.length < 2) {
+                    enemies.push(new Enemy(platforms[platforms.length-1]));
+                }
+            }
+        }
+
         // --- LEVEL 5 TIDE LOGIC ---
         if (currentLevel === 5) {
             if (tideState === 'none') {
                 tideCooldown--;
                 if (tideCooldown <= 0) {
                     tideState = 'warning';
-                    tideTimer = 10 * 60; // 10 second warning
-                    // Calculate a dynamic target level between 200 (high) and 400 (low-mid).
-                    // y=180 platforms will always be safe!
+                    tideTimer = 10 * 60; 
                     targetTideLevel = Math.floor(Math.random() * 200) + 200; 
                 }
             } else if (tideState === 'warning') {
                 tideTimer--;
                 if (tideTimer <= 0) tideState = 'rising';
             } else if (tideState === 'rising') {
-                tideLevel -= 0.4; // Rise up slowly
+                tideLevel -= 0.4; 
                 if (tideLevel <= targetTideLevel) { 
                     tideLevel = targetTideLevel;
                     tideState = 'high';
-                    tideTimer = 20 * 60; // Stay high for 20 seconds
+                    tideTimer = 20 * 60; 
                 }
             } else if (tideState === 'high') {
                 tideTimer--;
                 if (tideTimer <= 0) tideState = 'receding';
             } else if (tideState === 'receding') {
-                tideLevel += 0.4; // Recede slowly
+                tideLevel += 0.4; 
                 if (tideLevel >= canvas.height) {
                     tideLevel = canvas.height;
                     tideState = 'clear';
-                    tideTimer = 3 * 60; // Show all clear for 3 seconds
+                    tideTimer = 3 * 60; 
                 }
             } else if (tideState === 'clear') {
                 tideTimer--;
                 if (tideTimer <= 0) {
                     tideState = 'none';
-                    tideCooldown = 60 * 45; // Next tide in 45 secs
+                    tideCooldown = 60 * 45; 
                 }
             }
-
-            // Hurt player if they touch the tide
             if (tideLevel < canvas.height && player.y + player.h > tideLevel + 10) {
                 takeDamage();
             }
@@ -3083,6 +3323,19 @@
                 }
             }
         }
+
+        // --- LEVEL 9 PLANE LOGIC ---
+        if (currentLevel === 9) {
+            eventCooldown--;
+            if (eventCooldown <= 0 && !planeEvent) {
+                planeEvent = new PlaneBoss();
+                eventCooldown = 60 * 15; // 15 seconds
+            }
+            if (planeEvent) {
+                planeEvent.update();
+                if (!planeEvent.active) planeEvent = null;
+            }
+        }
         
         for (let plat of platforms) plat.update();
         for (let enemy of enemies) enemy.update();
@@ -3094,27 +3347,24 @@
         checkHeartCollisions();
         checkShellCollisions();
 
-        // Enemy Respawning (All levels)
+        // Enemy Respawning (Capped at 2)
         enemyRespawnTimer--;
-        if (enemyRespawnTimer <= 0) {
-            if (enemies.length < 3) {
-                // Find platforms far away from player
+        if (enemyRespawnTimer <= 0 && currentLevel !== 10) {
+            if (enemies.length < 2) {
                 let validPlats = platforms.slice(1).filter(p => Math.abs(p.x - player.x) > 250);
                 if (validPlats.length > 0) {
                     enemies.push(new Enemy(validPlats[Math.floor(Math.random() * validPlats.length)]));
                 }
             }
-            enemyRespawnTimer = Math.random() * 180 + 180; // 3 to 6 seconds
+            enemyRespawnTimer = Math.random() * 120 + 60; 
         }
 
-        // Heart Spawn Logic
         heartSpawnTimer--;
         if (heartSpawnTimer <= 0) {
             trySpawnHeart();
-            heartSpawnTimer = Math.random() * 60 * 60 + 30 * 60; // 30 to 90 seconds
+            heartSpawnTimer = Math.random() * 20 * 60 + 15 * 60; // 15 to 35 seconds
         }
 
-        // Shell Spawn Logic
         if (currentLevel === 5) {
             shellSpawnTimer--;
             if (shellSpawnTimer <= 0) {
@@ -3151,11 +3401,8 @@
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Keep drawing background and objects even when paused in the store or other popups!
         if (gameState !== 'playing' && gameState !== 'store' && gameState !== 'intermission' && gameState !== 'reading') {
-            // When in main menu, maybe draw static background
             updateBackground();
-            // Draw background stars
             if (currentLevel === 1 || currentLevel === 2) {
                 ctx.fillStyle = '#ffffff';
                 for(let i=0; i<30; i++){
@@ -3201,12 +3448,10 @@
             ctx.globalAlpha = 1.0;
         }
 
-        // Draw Level 5 Water Tide (Background Layer)
         if (currentLevel === 5 && tideLevel < canvas.height) {
             ctx.fillStyle = 'rgba(2, 132, 199, 0.75)'; // Transparent Ocean blue
             ctx.beginPath();
             ctx.moveTo(0, tideLevel);
-            // Wavy Top
             for(let i=0; i<=canvas.width; i+=20) {
                 ctx.lineTo(i, tideLevel + Math.sin(i*0.05 + Date.now()/200)*5);
             }
@@ -3215,31 +3460,26 @@
             ctx.fill();
         }
 
-        // 2. Base Gameplay Layer
         for (let plat of platforms) plat.draw();
         player.draw();
         
-        // 3. Foreground Scenery (Trees overlap player)
         for (let t of trees) t.draw();
         
-        // 4. Actors & Enemies
         if (gorillaEvent) gorillaEvent.draw();
         if (bearEvent) bearEvent.draw();
+        if (planeEvent) planeEvent.draw();
         for (let enemy of enemies) enemy.draw();
         for (let hazard of weatherHazards) hazard.draw();
         
-        // 5. Items & Projectiles
         for (let heart of heartsList) heart.draw();
         for (let shell of shellList) shell.draw();
         for (let proj of projectiles) proj.draw();
         
-        // 6. UI/Top Layer Objects
-        // WORDS DRAW LAST SO THEY NEVER GET HIDDEN BY TREES OR TIDE!
         for (let word of words) word.draw();
         for (let p of particles) p.draw();
         for (let ft of floatingTexts) ft.draw();
         
-        // Draw Warnings on top of EVERYTHING
+        // Warnings
         if (currentLevel === 5) {
             if (tideState === 'warning') {
                 ctx.fillStyle = '#ef4444'; ctx.font = 'bold 36px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
@@ -3276,7 +3516,6 @@
         }
     }
 
-    // Frame Limiter Variables
     let lastTime = 0;
     const targetFPS = 60;
     const frameInterval = 1000 / targetFPS;
@@ -3310,6 +3549,30 @@
             initGame(false);
         }
     });
+    
+    document.getElementById('endless-btn').addEventListener('click', () => {
+        startScreen.style.display = 'none';
+        categorySelectScreen.style.display = 'flex';
+    });
+
+    document.getElementById('start-endless-btn').addEventListener('click', () => {
+        endlessCategories = [];
+        document.querySelectorAll('.cat-cb:checked').forEach(cb => {
+            endlessCategories.push(cb.value);
+        });
+        
+        if (endlessCategories.length === 0) {
+            alert("Please select at least one vowel team to practice!");
+            return;
+        }
+        
+        initGame(false, true);
+    });
+
+    document.getElementById('cancel-endless-btn').addEventListener('click', () => {
+        categorySelectScreen.style.display = 'none';
+        startScreen.style.display = 'flex';
+    });
 
     document.getElementById('continue-btn').addEventListener('click', () => initGame(true));
     document.getElementById('new-game-btn').addEventListener('click', () => initGame(false));
@@ -3326,21 +3589,6 @@
     storeBtn.addEventListener('click', openStore);
     closeStoreBtn.addEventListener('click', closeStore);
     menuBtn.addEventListener('click', goToMainMenu);
-    
-    // Settings Listeners
-    useMicToggle.checked = useMic;
-    useMicToggle.addEventListener('change', (e) => {
-        useMic = e.target.checked;
-        localStorage.setItem('vowelTeamUseMic', useMic);
-    });
-    settingsBtn.addEventListener('click', () => {
-        startScreen.style.display = 'none';
-        settingsScreen.style.display = 'flex';
-    });
-    closeSettingsBtn.addEventListener('click', () => {
-        settingsScreen.style.display = 'none';
-        startScreen.style.display = 'flex';
-    });
     
     document.getElementById('open-leaderboard-btn').addEventListener('click', openLeaderboard);
     document.getElementById('close-leaderboard-btn').addEventListener('click', closeLeaderboard);
@@ -3372,19 +3620,46 @@
             
             let targetWord = currentReadingWords[currentReadingIndex].toLowerCase();
             
-            if (spokenWord === targetWord) {
+            // --- Broad Match Logic ---
+            let isCorrect = spokenWord === targetWord || 
+                            spokenWord.startsWith(targetWord) || 
+                            targetWord.startsWith(spokenWord) ||
+                            spokenWord.includes(targetWord);
+                            
+            if (!isCorrect && looseMatches[targetWord]) {
+                if (looseMatches[targetWord].some(match => spokenWord.includes(match))) {
+                    isCorrect = true;
+                }
+            }
+            
+            if (isCorrect) {
                 readBtn.innerText = "Correct! 🌟";
                 readBtn.style.backgroundColor = "#4ade80"; // Turn green for success
+                failedAttempts = 0;
                 setTimeout(() => advanceReading(), 700); 
             } else {
-                readBtn.innerText = `Heard "${spokenWord}". Try again!`;
-                readBtn.style.backgroundColor = "#f59e0b"; // Turn orange/yellow for retry
-                setTimeout(() => {
-                    if (!isListening && gameState === 'reading') {
-                        readBtn.innerText = (useMic && (window.SpeechRecognition || window.webkitSpeechRecognition)) ? "🎙️ Click to Speak (Enter)" : "✅ I read it! (Enter)";
-                        readBtn.style.backgroundColor = "#e94560";
-                    }
-                }, 2500);
+                failedAttempts++;
+                if (failedAttempts >= 3) {
+                    readBtn.innerText = `It's "${targetWord}"!`;
+                    readBtn.style.backgroundColor = "#38bdf8"; 
+                    
+                    // Use Text-to-Speech to read the word naturally
+                    let utterance = new SpeechSynthesisUtterance(targetWord);
+                    utterance.rate = 0.85; 
+                    window.speechSynthesis.speak(utterance);
+                    
+                    failedAttempts = 0; // reset
+                    setTimeout(() => advanceReading(), 2500); // Auto advance after reading it
+                } else {
+                    readBtn.innerText = `Heard "${spokenWord}". Try again!`;
+                    readBtn.style.backgroundColor = "#f59e0b"; // Turn orange/yellow for retry
+                    setTimeout(() => {
+                        if (!isListening && gameState === 'reading') {
+                            readBtn.innerText = "🎙️ Click to Speak (Enter)";
+                            readBtn.style.backgroundColor = "#e94560";
+                        }
+                    }, 2500);
+                }
             }
         };
 
@@ -3393,7 +3668,7 @@
             readBtn.innerText = `Mic error. Try again!`;
             setTimeout(() => {
                 if (!isListening && gameState === 'reading') {
-                    readBtn.innerText = (useMic && (window.SpeechRecognition || window.webkitSpeechRecognition)) ? "🎙️ Click to Speak (Enter)" : "✅ I read it! (Enter)";
+                    readBtn.innerText = "🎙️ Click to Speak (Enter)";
                     readBtn.style.backgroundColor = "#e94560";
                 }
             }, 2500);
@@ -3403,15 +3678,15 @@
             isListening = false;
             // Let the success/failure timeouts handle the UI resets
             if (readBtn.innerText === "🎙️ Listening...") {
-                readBtn.innerText = (useMic && (window.SpeechRecognition || window.webkitSpeechRecognition)) ? "🎙️ Click to Speak (Enter)" : "✅ I read it! (Enter)";
+                readBtn.innerText = "🎙️ Click to Speak (Enter)";
                 readBtn.style.backgroundColor = "#e94560";
             }
         };
     }
 
     function handleReadAction() {
-        if (!useMic || !recognition) {
-            // Bypass speech recognition completely if disabled or unsupported
+        if (!recognition) {
+            // Fallback if browser doesn't support speech recognition
             advanceReading();
             return;
         }
