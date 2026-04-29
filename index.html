@@ -434,6 +434,7 @@
                 <div id="start-btn-group" style="display: flex; gap: 20px; margin-top: 10px;">
                     <button class="btn" id="start-btn">PLAY GAME</button>
                     <button class="btn" id="open-leaderboard-btn" style="background-color: #3b82f6; box-shadow: 0 6px 0 #1d4ed8;">SCORES</button>
+                    <button class="btn" id="settings-btn" style="background-color: #64748b; box-shadow: 0 6px 0 #475569;">SETTINGS</button>
                 </div>
 
                 <!-- Continue Prompt (Hidden by default) -->
@@ -457,6 +458,21 @@
                     </ul>
                 </div>
                 <button class="btn" id="close-leaderboard-btn">BACK TO MENU</button>
+            </div>
+
+            <!-- Settings Screen -->
+            <div id="settings-screen" class="screen" style="display:none;">
+                <h1 style="color: #38bdf8; margin-bottom: 20px;">Settings</h1>
+                <div style="background: rgba(15, 23, 42, 0.95); border: 3px solid #38bdf8; border-radius: 12px; padding: 30px; width: 400px; max-width: 90%;">
+                    <label style="display: flex; align-items: center; justify-content: space-between; font-size: 24px; color: white; cursor: pointer;">
+                        <span>Use Microphone</span>
+                        <input type="checkbox" id="use-mic-toggle" style="width: 25px; height: 25px; cursor: pointer;">
+                    </label>
+                    <p style="font-size: 16px; color: #94a3b8; margin-top: 15px; text-align: left; line-height: 1.4;">
+                        If disabled, you can just say the word out loud and press Enter to continue without voice recognition.
+                    </p>
+                </div>
+                <button class="btn" id="close-settings-btn" style="margin-top: 30px;">BACK TO MENU</button>
             </div>
 
             <!-- Intermission Screen -->
@@ -779,6 +795,7 @@
     const overlay = document.getElementById('overlay');
     const startScreen = document.getElementById('start-screen');
     const leaderboardScreen = document.getElementById('leaderboard-screen');
+    const settingsScreen = document.getElementById('settings-screen');
     const intermissionScreen = document.getElementById('intermission-screen');
     const winScreen = document.getElementById('win-screen');
     const gameOverScreen = document.getElementById('game-over-screen');
@@ -794,6 +811,9 @@
     const readingModal = document.getElementById('reading-modal');
     const readWordContainer = document.getElementById('read-word-container');
     const readBtn = document.getElementById('read-btn');
+    const settingsBtn = document.getElementById('settings-btn');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+    const useMicToggle = document.getElementById('use-mic-toggle');
 
     // Store & Menu UI Elements
     const storeBtn = document.getElementById('store-btn');
@@ -1080,6 +1100,9 @@
     // Reading multi-word state
     let currentReadingWords = [];
     let currentReadingIndex = 0;
+
+    // Setting for Voice Recognition
+    let useMic = localStorage.getItem('vowelTeamUseMic') !== 'false';
 
     // Physics Engine Variables (Locked to the slower, weightier physics!)
     let gravity = 0.15; 
@@ -2528,7 +2551,11 @@
         readingModal.style.display = 'flex';
         
         // Reset button state for the new word
-        readBtn.innerText = "🎙️ Click to Speak (Enter)";
+        if (useMic && (window.SpeechRecognition || window.webkitSpeechRecognition)) {
+            readBtn.innerText = "🎙️ Click to Speak (Enter)";
+        } else {
+            readBtn.innerText = "✅ I read it! (Enter)";
+        }
         readBtn.style.backgroundColor = "#e94560";
     }
 
@@ -2741,6 +2768,7 @@
         winScreen.style.display = 'none';
         intermissionScreen.style.display = 'none';
         leaderboardScreen.style.display = 'none';
+        settingsScreen.style.display = 'none';
         readingModal.style.display = 'none';
         storeModal.style.display = 'none';
 
@@ -2934,6 +2962,7 @@
         winScreen.style.display = 'none';
         intermissionScreen.style.display = 'none';
         leaderboardScreen.style.display = 'none';
+        settingsScreen.style.display = 'none';
         
         // Show start screen and reset menus
         startScreen.style.display = 'flex';
@@ -3298,6 +3327,21 @@
     closeStoreBtn.addEventListener('click', closeStore);
     menuBtn.addEventListener('click', goToMainMenu);
     
+    // Settings Listeners
+    useMicToggle.checked = useMic;
+    useMicToggle.addEventListener('change', (e) => {
+        useMic = e.target.checked;
+        localStorage.setItem('vowelTeamUseMic', useMic);
+    });
+    settingsBtn.addEventListener('click', () => {
+        startScreen.style.display = 'none';
+        settingsScreen.style.display = 'flex';
+    });
+    closeSettingsBtn.addEventListener('click', () => {
+        settingsScreen.style.display = 'none';
+        startScreen.style.display = 'flex';
+    });
+    
     document.getElementById('open-leaderboard-btn').addEventListener('click', openLeaderboard);
     document.getElementById('close-leaderboard-btn').addEventListener('click', closeLeaderboard);
     
@@ -3337,7 +3381,7 @@
                 readBtn.style.backgroundColor = "#f59e0b"; // Turn orange/yellow for retry
                 setTimeout(() => {
                     if (!isListening && gameState === 'reading') {
-                        readBtn.innerText = "🎙️ Click to Speak (Enter)";
+                        readBtn.innerText = (useMic && (window.SpeechRecognition || window.webkitSpeechRecognition)) ? "🎙️ Click to Speak (Enter)" : "✅ I read it! (Enter)";
                         readBtn.style.backgroundColor = "#e94560";
                     }
                 }, 2500);
@@ -3349,7 +3393,7 @@
             readBtn.innerText = `Mic error. Try again!`;
             setTimeout(() => {
                 if (!isListening && gameState === 'reading') {
-                    readBtn.innerText = "🎙️ Click to Speak (Enter)";
+                    readBtn.innerText = (useMic && (window.SpeechRecognition || window.webkitSpeechRecognition)) ? "🎙️ Click to Speak (Enter)" : "✅ I read it! (Enter)";
                     readBtn.style.backgroundColor = "#e94560";
                 }
             }, 2500);
@@ -3359,15 +3403,15 @@
             isListening = false;
             // Let the success/failure timeouts handle the UI resets
             if (readBtn.innerText === "🎙️ Listening...") {
-                readBtn.innerText = "🎙️ Click to Speak (Enter)";
+                readBtn.innerText = (useMic && (window.SpeechRecognition || window.webkitSpeechRecognition)) ? "🎙️ Click to Speak (Enter)" : "✅ I read it! (Enter)";
                 readBtn.style.backgroundColor = "#e94560";
             }
         };
     }
 
     function handleReadAction() {
-        if (!recognition) {
-            // Fallback if browser doesn't support speech recognition
+        if (!useMic || !recognition) {
+            // Bypass speech recognition completely if disabled or unsupported
             advanceReading();
             return;
         }
