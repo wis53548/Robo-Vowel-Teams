@@ -1445,7 +1445,7 @@
             this.w = 32;
             this.h = 32;
             this.x = canvas.width / 2 - this.w / 2;
-            this.y = canvas.height - 100;
+            this.y = canvas.height - 150;
             this.vx = 0;
             this.vy = 0;
             this.grounded = false;
@@ -1523,7 +1523,7 @@
                 enemies = enemies.filter(e => e.y < canvas.height + 100);
             }
 
-            if (this.y > canvas.height) {
+            if (this.y > canvas.height - 20) {
                 if (currentLevel === 10) {
                     if (health > 0) {
                         health--;
@@ -1931,7 +1931,7 @@
         update() {
             if (this.isMoving) {
                 this.x += this.vx;
-                if (this.x < 50 || this.x + this.w > canvas.width - 50) {
+                if ((this.x < 20 && this.vx < 0) || (this.x + this.w > canvas.width - 20 && this.vx > 0)) {
                     this.vx *= -1;
                 }
             }
@@ -2242,7 +2242,7 @@
     }
 
     class WordItem {
-        constructor(x, y, text, team, isTarget, isBonus = false, isDistractor = false) {
+        constructor(x, y, text, team, isTarget, isBonus = false, isDistractor = false, plat = null) {
             this.x = x;
             this.y = y;
             this.w = 80;
@@ -2252,6 +2252,7 @@
             this.isTarget = isTarget;
             this.isBonus = isBonus;
             this.isDistractor = isDistractor;
+            this.plat = plat;
             this.bobOffset = Math.random() * Math.PI * 2;
             this.active = true;
             
@@ -2279,263 +2280,8 @@
                 if (currentLevel !== 10 && (this.y < 50 || this.y + this.h > canvas.height - 60)) this.vy *= -1;
             } else {
                 this.bobOffset += 0.05;
-            }
-        }
-
-        draw() {
-            if (!this.active) return;
-            
-            let currentY = this.isFloating ? this.y : this.y + Math.sin(this.bobOffset) * 5;
-
-            if (this.isBonus) {
-                ctx.fillStyle = 'rgba(234, 179, 8, 0.9)'; 
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 3;
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = '#facc15';
-            } else {
-                ctx.fillStyle = this.multiplier > 1 ? 'rgba(60, 40, 10, 0.9)' : 'rgba(15, 23, 42, 0.8)';
-                ctx.strokeStyle = this.multiplier > 1 ? '#facc15' : '#38bdf8';
-                ctx.lineWidth = this.multiplier > 1 ? 3 : 2;
-                ctx.shadowBlur = 0;
-            }
-            
-            if (this.isFloating) {
-                ctx.beginPath();
-                ctx.ellipse(this.x + this.w/2, currentY + this.h/2, this.w/2 + 5, this.h/2 + 5, 0, 0, Math.PI*2);
-                ctx.fill();
-                ctx.stroke();
-            } else {
-                ctx.beginPath();
-                ctx.roundRect(this.x, currentY, this.w, this.h, 5);
-                ctx.fill();
-                ctx.stroke();
-            }
-            
-            ctx.shadowBlur = 0; 
-
-            ctx.fillStyle = this.isBonus ? '#000' : '#fff';
-            ctx.font = 'bold 16px monospace';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(this.text, this.x + this.w/2, currentY + this.h/2);
-
-            if (this.multiplier > 1 && !this.isBonus) {
-                ctx.fillStyle = '#facc15';
-                ctx.beginPath();
-                ctx.arc(this.x + this.w, currentY, 14, 0, Math.PI*2);
-                ctx.fill();
-                ctx.fillStyle = '#000';
-                ctx.font = 'bold 12px sans-serif';
-                ctx.fillText('x' + this.multiplier, this.x + this.w, currentY);
-            }
-        }
-    }
-
-    class HeartItem {
-        constructor(platform) {
-            this.w = 20;
-            this.h = 20;
-            this.plat = platform;
-            this.x = platform.x + platform.w / 2 - 10;
-            this.y = platform.y - this.h - 15;
-            this.active = true;
-            this.life = 60 * 60; 
-            this.bobOffset = 0;
-        }
-
-        update() {
-            if (!this.active) return;
-            this.life--;
-            if (this.life <= 0) this.active = false;
-            
-            this.bobOffset += 0.1;
-            
-            if (this.plat.isMoving) this.x += this.plat.vx;
-            if (this.plat.isMovingVert) this.y += this.plat.vy;
-        }
-
-        draw() {
-            if (!this.active) return;
-            let currentY = this.y + Math.sin(this.bobOffset) * 5;
-            
-            if (this.life < 180 && Math.floor(Date.now() / 100) % 2 === 0) return;
-
-            ctx.fillStyle = '#ef4444';
-            ctx.font = '24px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('♥', this.x + this.w/2, currentY + this.h/2);
-        }
-    }
-
-    class ShellItem {
-        constructor(platform) {
-            this.w = 20;
-            this.h = 20;
-            this.plat = platform;
-            this.x = platform.x + platform.w / 2 - 10;
-            this.y = platform.y - this.h - 15;
-            this.active = true;
-            this.life = 120 * 60; 
-            this.bobOffset = 0;
-        }
-
-        update() {
-            if (!this.active) return;
-            this.life--;
-            if (this.life <= 0) this.active = false;
-            this.bobOffset += 0.1;
-            if (this.plat.isMoving) this.x += this.plat.vx;
-            if (this.plat.isMovingVert) this.y += this.plat.vy;
-            
-            if (currentLevel === 5 && this.y >= tideLevel) this.active = false;
-        }
-
-        draw() {
-            if (!this.active) return;
-            let currentY = this.y + Math.sin(this.bobOffset) * 5;
-            
-            if (this.life < 180 && Math.floor(Date.now() / 100) % 2 === 0) return;
-
-            ctx.fillStyle = '#fff';
-            ctx.font = '24px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            let icon = currentLevel === 9 ? '🔋' : '🐚';
-            ctx.fillText(icon, this.x + this.w/2, currentY + this.h/2);
-        }
-    }
-
-    class Enemy {
-        constructor(platform) {
-            this.w = 26;
-            this.h = 22;
-            this.plat = platform;
-            this.x = platform.x + platform.w / 2;
-            this.y = platform.y - this.h;
-            this.vx = (Math.random() > 0.5 ? 1 : -1) * 0.4;
-            this.vy = 0;
-            this.active = true;
-            
-            this.isDrone = (currentLevel === 9);
-            this.baseY = this.y - (this.isDrone ? 30 : 0);
-            this.jammed = false;
-            
-            this.isClosed = false;
-            this.stateTimer = Math.random() * 60 + 60;
-
-            if (currentLevel === 1) this.color = '#e11d48';
-            else if (currentLevel === 2) this.color = '#d946ef'; 
-            else if (currentLevel === 3) this.color = '#0ea5e9'; 
-            else if (currentLevel === 4) this.color = '#f97316'; 
-            else if (currentLevel === 5) this.color = '#f43f5e'; 
-            else if (currentLevel === 6) this.color = '#84cc16'; 
-            else if (currentLevel === 7) this.color = '#1e293b'; 
-            else if (currentLevel === 8) this.color = '#4ade80'; 
-            else if (currentLevel === 9) this.color = '#38bdf8'; 
-            else if (currentLevel === 10) this.color = '#a855f7'; 
-        }
-
-        update() {
-            if (!this.active) return;
-            
-            if (this.jammed) {
-                this.y -= 12; 
-                this.x += this.vx * 3; 
-                if (this.y < -100 || this.x < -100 || this.x > canvas.width + 100) this.active = false;
-                return; 
-            }
-            
-            if (currentLevel === 8) {
-                this.stateTimer--;
-                if (this.stateTimer <= 0) {
-                    this.isClosed = !this.isClosed;
-                    this.stateTimer = this.isClosed ? 180 : 120; 
-                }
-            }
-            
-            if (this.plat.isMoving) this.x += this.plat.vx;
-            if (this.plat.isMovingVert) {
-                this.y += this.plat.vy;
-                this.baseY += this.plat.vy;
-            }
-            
-            if (this.isDrone) {
-                this.x += this.vx * 0.5; 
-                if (this.x <= this.plat.x || this.x + this.w >= this.plat.x + this.plat.w) {
-                    this.vx *= -1;
-                }
-                let time = Date.now();
-                this.y = this.baseY - 35 + Math.sin(time / 800 + this.x / 50) * 12 + Math.cos(time / 1300) * 8;
-            } else {
-                this.x += this.vx;
-
-                if (this.x <= this.plat.x || this.x + this.w >= this.plat.x + this.plat.w) {
-                    this.vx *= -1;
-                    if (this.x < this.plat.x) this.x = this.plat.x;
-                    if (this.x + this.w > this.plat.x + this.plat.w) this.x = this.plat.x + this.plat.w - this.w;
-                }
-
-                if (currentLevel === 2) {
-                    this.y += this.vy;
-                    this.vy += gravity; 
-                    if (this.y + this.h > this.plat.y) {
-                        this.y = this.plat.y - this.h;
-                        this.vy = -3 - Math.random() * 2; 
-                    }
-                } else {
-                    this.y = this.plat.y - this.h;
-                }
-            }
-
-            for (let p of projectiles) {
-                if (!p.active) continue;
-                if (p.x < this.x + this.w && p.x + p.w > this.x &&
-                    p.y < this.y + this.h && p.y + p.h > this.y) {
-                    p.active = false;
-                    
-                    if (this.isDrone) {
-                        this.jammed = true;
-                        playSound('throw');
-                        score += 200; tokens += 200;
-                        spawnParticles(this.x + this.w/2, this.y + this.h/2, '#06b6d4');
-                        floatingTexts.push(new FloatingText(this.x + this.w/2, this.y, `Jammed!`, "#06b6d4"));
-                    } else {
-                        this.active = false;
-                        score += 200;
-                        tokens += 200;
-                        playSound('stomp');
-                        spawnParticles(this.x + this.w/2, this.y + this.h/2, this.color);
-                        floatingTexts.push(new FloatingText(this.x + this.w/2, this.y, `+200`, "#facc15"));
-                    }
-                    updateHUD();
-                    return; 
-                }
-            }
-
-            if (player.invulnerableTimer === 0 &&
-                player.x < this.x + this.w && player.x + player.w > this.x &&
-                player.y < this.y + this.h && player.y + player.h > this.y) {
-                
-                let canStomp = true;
-                if (currentLevel === 5) canStomp = false; 
-                if (currentLevel === 8 && !this.isClosed) canStomp = false; 
-                if (currentLevel === 9) canStomp = false; 
-                
-                let wasSafelyAbove = (player.y + player.h - player.vy) <= this.y + 16;
-                
-                if (canStomp && player.vy > 0 && wasSafelyAbove) {
-                    this.active = false;
-                    player.vy = playerJumpPower; 
-                    score += 200;
-                    tokens += 200;
-                    playSound('stomp');
-                    spawnParticles(this.x + this.w/2, this.y + this.h/2, this.color);
-                    floatingTexts.push(new FloatingText(this.x + this.w/2, this.y, `+200`, "#facc15"));
-                    updateHUD();
-                } else {
-                    takeDamage();
+                if (this.plat && this.plat.isMoving) {
+                    this.x += this.plat.vx;
                 }
             }
         }
@@ -2736,9 +2482,9 @@
     function getSpawnPoints() {
         let cw = canvas.width;
         let ch = canvas.height;
-        let y1 = ch - Math.min(180, ch * 0.3) - 50;
-        let y2 = ch - Math.min(320, ch * 0.55) - 50;
-        let y3 = ch - Math.min(420, ch * 0.75) - 50;
+        let y1 = ch - Math.min(180, ch * 0.3) - 80;
+        let y2 = ch - Math.min(320, ch * 0.55) - 80;
+        let y3 = ch - Math.min(420, ch * 0.75) - 80;
         return [
             {x: cw*0.12, y: y1}, {x: cw*0.5, y: y1}, {x: cw*0.8, y: y1},
             {x: cw*0.06, y: y2}, {x: cw*0.43, y: y2}, {x: cw*0.8, y: y2},
@@ -2754,18 +2500,18 @@
         let ch = canvas.height;
 
         if (currentLevel === 10) {
-            platforms.push(new Platform(cw/2 - 100, ch - 50, 200, 20)); 
+            platforms.push(new Platform(cw/2 - 100, ch - 80, 200, 20)); 
             platforms.push(new Platform(cw*0.37, ch - 200, 200, 20));
             platforms.push(new Platform(cw*0.18, ch - 350, 150, 20));
             platforms.push(new Platform(cw*0.5, ch - 500, 150, 20));
             return;
         }
 
-        platforms.push(new Platform(-100, ch - 50, cw + 200, 50));
+        platforms.push(new Platform(-100, ch - 80, cw + 200, 80));
 
-        let y1 = ch - Math.min(180, ch * 0.3);
-        let y2 = ch - Math.min(320, ch * 0.55);
-        let y3 = ch - Math.min(420, ch * 0.75);
+        let y1 = ch - Math.min(180, ch * 0.3) - 30;
+        let y2 = ch - Math.min(320, ch * 0.55) - 30;
+        let y3 = ch - Math.min(420, ch * 0.75) - 30;
 
         if (currentLevel === 1 || currentLevel === 3 || currentLevel === 5 || currentLevel === 6 || currentLevel === 8 || currentLevel === 9) {
             platforms.push(new Platform(cw*0.18, y1, 150, 20));
@@ -2933,7 +2679,7 @@
         playSound('wrong');
         
         player.vy = -5; 
-        player.vx = (player.facingRight ? -4 : 4);
+        player.vx = (currentLevel === 10) ? (player.facingRight ? -1.5 : 1.5) : (player.facingRight ? -4 : 4);
         player.invulnerableTimer = 180; 
         
         document.getElementById('game-container').style.transform = 'translate(10px, 10px)';
@@ -3476,7 +3222,7 @@
 
         if (!player) player = new Player();
         player.x = canvas.width / 2 - player.w / 2;
-        player.y = canvas.height - 100;
+        player.y = canvas.height - 150;
         player.vx = 0;
         player.vy = 0;
         player.invulnerableTimer = 180;
@@ -3590,7 +3336,7 @@
         if (currentLevel === 10) {
             let highestPlat = platforms.reduce((highest, p) => p.y < highest.y ? p : highest, platforms[0]);
             if (highestPlat && highestPlat.y > -100) {
-                let w = Math.random() * 40 + 80; 
+                let w = Math.random() * 60 + 110; 
                 let yDiff = Math.random() * 30 + 90; 
                 let y = highestPlat.y - yDiff;
 
@@ -3605,7 +3351,12 @@
                 let x = centerLast + (offset * dir) - w/2;
                 x = Math.max(10, Math.min(x, canvas.width - w - 10)); 
                 
-                platforms.push(new Platform(x, y, w, 20));
+                let isMoving = Math.random() < 0.6;
+                let newPlat = new Platform(x, y, w, 20, isMoving);
+                if (isMoving) {
+                    newPlat.vx = (Math.random() > 0.5 ? 1 : -1) * (0.8 + Math.random() * 1.5);
+                }
+                platforms.push(newPlat);
                 
                 if (Math.random() < 0.6) {
                     let isTarget = (words.filter(w => w.isTarget).length < 2) || Math.random() < 0.3;
@@ -3613,7 +3364,7 @@
                     
                     let wordY = y - 45; 
                     let wordX = x + w/2 - 40;
-                    words.push(new WordItem(wordX, wordY, logic.text, logic.team, logic.isTarget, logic.isBonus, logic.isDistractor));
+                    words.push(new WordItem(wordX, wordY, logic.text, logic.team, logic.isTarget, logic.isBonus, logic.isDistractor, newPlat));
                 }
                 
                 if (Math.random() < 0.3 && enemies.length < 4) {
