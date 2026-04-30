@@ -17,6 +17,8 @@
             height: 100vh;
             overflow: hidden;
             user-select: none;
+            touch-action: none;
+            overscroll-behavior: none;
         }
 
         #game-wrapper {
@@ -379,6 +381,40 @@
             height: 20px;
             cursor: pointer;
         }
+
+        #mobile-controls {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 90;
+        }
+        
+        .mob-btn {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 36px;
+            color: rgba(255, 255, 255, 0.7);
+            pointer-events: auto;
+            user-select: none;
+            touch-action: none;
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+        }
+        .mob-btn:active {
+            background: rgba(255, 255, 255, 0.4);
+        }
+        #btn-left { bottom: 30px; left: 20px; }
+        #btn-right { bottom: 30px; left: 110px; }
+        #btn-jump { bottom: 30px; right: 20px; width: 80px; height: 80px; font-size: 48px; }
+        #btn-fire { bottom: 130px; right: 20px; width: 70px; height: 70px; font-size: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -439,6 +475,7 @@
                     <button class="btn" id="start-btn">PLAY GAME</button>
                     <button class="btn" id="endless-btn" style="background-color: #a855f7; box-shadow: 0 6px 0 #7e22ce;">ENDLESS CLIMB</button>
                     <button class="btn" id="open-leaderboard-btn" style="background-color: #3b82f6; box-shadow: 0 6px 0 #1d4ed8;">SCORES</button>
+                    <button class="btn" id="open-settings-btn" style="background-color: #64748b; box-shadow: 0 6px 0 #475569;">SETTINGS</button>
                 </div>
 
                 <div id="continue-prompt" style="display: none; flex-direction: column; align-items: center; margin-top: 10px;">
@@ -449,6 +486,25 @@
                     </div>
                     <button class="btn" id="cancel-continue-btn" style="margin-top: 15px; font-size: 16px; padding: 10px 20px; background-color: #64748b; box-shadow: 0 4px 0 #475569;">CANCEL</button>
                 </div>
+            </div>
+
+            <!-- Settings Screen -->
+            <div id="settings-screen" class="screen" style="display:none;">
+                <h1 style="color: #38bdf8;">Settings</h1>
+                <div style="background: rgba(15, 23, 42, 0.95); border: 3px solid #38bdf8; border-radius: 12px; padding: 20px; width: 380px; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <span style="font-size: 20px; color: #fff;">Mobile Controls</span>
+                        <input type="checkbox" id="mobile-toggle" style="width: 24px; height: 24px;">
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <span style="font-size: 20px; color: #fff;">Control Style</span>
+                        <select id="control-style-select" style="padding: 8px; font-size: 16px; border-radius: 5px; background: #1e293b; color: white; border: 2px solid #4ade80;">
+                            <option value="buttons">On-Screen Buttons</option>
+                            <option value="swipe">Swipe & Drag (Dbl Tap Fire)</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn" id="close-settings-btn" style="margin-top: 20px;">BACK</button>
             </div>
 
             <div id="category-select-screen" class="screen" style="display:none; background: rgba(15,23,42,0.95); z-index: 100;">
@@ -532,6 +588,14 @@
             <div id="store-content"></div>
         </div>
     </div>
+</div>
+
+<!-- Mobile Controls Overlays -->
+<div id="mobile-controls">
+    <div id="btn-left" class="mob-btn">&larr;</div>
+    <div id="btn-right" class="mob-btn">&rarr;</div>
+    <div id="btn-jump" class="mob-btn">&#8673;</div>
+    <div id="btn-fire" class="mob-btn" style="display:none;">FIRE</div>
 </div>
 
 <script type="module">
@@ -949,6 +1013,29 @@
         }
     });
 
+    function triggerJump() {
+        if (gameState === 'playing' && player) {
+            if (!player.grounded && equipped.wheels === 'rocket' && !player.hasDoubleJumped) {
+                player.vy = playerJumpPower * 0.8;
+                player.hasDoubleJumped = true;
+                playSound('throw');
+                spawnParticles(player.x + player.w/2, player.y + player.h, '#facc15');
+                spawnParticles(player.x + player.w/2, player.y + player.h, '#ef4444');
+            }
+        }
+        keys.up = true; 
+        initAudio();
+    }
+
+    function triggerFire() {
+        if (gameState === 'playing' && (currentLevel === 5 || currentLevel === 9) && ammo > 0) {
+            ammo--;
+            projectiles.push(new Projectile(player.facingRight ? player.x + player.w : player.x - (currentLevel === 9 ? 24 : 16), player.y + player.h/2 - 8, player.facingRight));
+            playSound('throw');
+            updateHUD();
+        }
+    }
+
     const keys = { left: false, right: false, up: false };
     
     window.addEventListener('keydown', (e) => {
@@ -961,29 +1048,15 @@
         }
 
         if (e.code === 'KeyF' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
-            if (gameState === 'playing' && (currentLevel === 5 || currentLevel === 9) && ammo > 0) {
-                ammo--;
-                projectiles.push(new Projectile(player.facingRight ? player.x + player.w : player.x - (currentLevel === 9 ? 24 : 16), player.y + player.h/2 - 8, player.facingRight));
-                playSound('throw');
-                updateHUD();
-            }
+            e.preventDefault();
+            triggerFire();
         }
         
         if (e.code === 'ArrowLeft' || e.code === 'KeyA') { keys.left = true; e.preventDefault(); }
         if (e.code === 'ArrowRight' || e.code === 'KeyD') { keys.right = true; e.preventDefault(); }
         if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') { 
-            if (gameState === 'playing' && player) {
-                if (!player.grounded && equipped.wheels === 'rocket' && !player.hasDoubleJumped) {
-                    player.vy = playerJumpPower * 0.8;
-                    player.hasDoubleJumped = true;
-                    playSound('throw');
-                    spawnParticles(player.x + player.w/2, player.y + player.h, '#facc15');
-                    spawnParticles(player.x + player.w/2, player.y + player.h, '#ef4444');
-                }
-            }
-            keys.up = true; 
             e.preventDefault(); 
-            initAudio();
+            if (!keys.up) triggerJump();
         }
     });
     window.addEventListener('keyup', (e) => {
@@ -992,6 +1065,132 @@
         if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
         if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
         if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') keys.up = false;
+    });
+
+    // --- Mobile UI & Touch Handlers ---
+    let isMobileMode = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || ('ontouchstart' in window);
+    let controlStyle = 'buttons'; 
+
+    try {
+        let savedSettings = JSON.parse(localStorage.getItem('vowelTeamSettings'));
+        if (savedSettings) {
+            isMobileMode = savedSettings.isMobileMode;
+            controlStyle = savedSettings.controlStyle || 'buttons';
+        }
+    } catch(e) {}
+
+    const mobileToggle = document.getElementById('mobile-toggle');
+    const controlStyleSelect = document.getElementById('control-style-select');
+    mobileToggle.checked = isMobileMode;
+    controlStyleSelect.value = controlStyle;
+
+    mobileToggle.addEventListener('change', (e) => {
+        isMobileMode = e.target.checked;
+        localStorage.setItem('vowelTeamSettings', JSON.stringify({isMobileMode, controlStyle}));
+        updateMobileControlsVisibility();
+    });
+
+    controlStyleSelect.addEventListener('change', (e) => {
+        controlStyle = e.target.value;
+        localStorage.setItem('vowelTeamSettings', JSON.stringify({isMobileMode, controlStyle}));
+        updateMobileControlsVisibility();
+    });
+
+    function updateMobileControlsVisibility() {
+        const mobDiv = document.getElementById('mobile-controls');
+        if (isMobileMode && gameState === 'playing') {
+            mobDiv.style.display = 'block';
+            if (controlStyle === 'swipe') {
+                document.getElementById('btn-left').style.display = 'none';
+                document.getElementById('btn-right').style.display = 'none';
+                document.getElementById('btn-jump').style.display = 'none';
+                // Leave fire accessible in case double-tapping is difficult
+                document.getElementById('btn-fire').style.display = (currentLevel === 5 || currentLevel === 9) ? 'flex' : 'none'; 
+            } else {
+                document.getElementById('btn-left').style.display = 'flex';
+                document.getElementById('btn-right').style.display = 'flex';
+                document.getElementById('btn-jump').style.display = 'flex';
+                document.getElementById('btn-fire').style.display = (currentLevel === 5 || currentLevel === 9) ? 'flex' : 'none';
+            }
+        } else {
+            mobDiv.style.display = 'none';
+        }
+    }
+
+    // Touch handlers for direct buttons
+    const btnLeft = document.getElementById('btn-left');
+    const btnRight = document.getElementById('btn-right');
+    const btnJump = document.getElementById('btn-jump');
+    const btnFire = document.getElementById('btn-fire');
+
+    btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); keys.left = true; }, {passive: false});
+    btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); keys.left = false; }, {passive: false});
+    btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = true; }, {passive: false});
+    btnRight.addEventListener('touchend', (e) => { e.preventDefault(); keys.right = false; }, {passive: false});
+    
+    btnJump.addEventListener('touchstart', (e) => { 
+        e.preventDefault(); 
+        if (!keys.up) triggerJump();
+    }, {passive: false});
+    btnJump.addEventListener('touchend', (e) => { e.preventDefault(); keys.up = false; }, {passive: false});
+    
+    btnFire.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        triggerFire();
+    }, {passive: false});
+
+    // Swipe and double-tap logic mapping
+    let swipeStartX = 0;
+    let swipeStartY = 0;
+    let isSwiping = false;
+    let lastTapTime = 0;
+
+    window.addEventListener('touchstart', (e) => {
+        if (gameState !== 'playing' || !isMobileMode) return;
+        if (e.target.closest('.mob-btn') || e.target.closest('.btn') || e.target.closest('.hud-btn') || e.target.tagName.toLowerCase() === 'input') return;
+
+        let currentTime = new Date().getTime();
+        let tapLength = currentTime - lastTapTime;
+        if (tapLength < 300 && tapLength > 0) {
+            triggerFire();
+            e.preventDefault();
+            return;
+        }
+        lastTapTime = currentTime;
+
+        if (controlStyle === 'swipe') {
+            swipeStartX = e.touches[0].clientX;
+            swipeStartY = e.touches[0].clientY;
+            isSwiping = true;
+        }
+    }, {passive: false});
+
+    window.addEventListener('touchmove', (e) => {
+        if (!isSwiping || gameState !== 'playing') return;
+        e.preventDefault(); 
+        
+        let cx = e.touches[0].clientX;
+        let cy = e.touches[0].clientY;
+        let dx = cx - swipeStartX;
+        let dy = cy - swipeStartY;
+
+        if (dx > 20) { keys.right = true; keys.left = false; }
+        else if (dx < -20) { keys.left = true; keys.right = false; }
+        else { keys.left = false; keys.right = false; }
+
+        if (dy < -40 && !keys.up) {
+            triggerJump();
+            swipeStartY = cy; // Reset to prevent infinite jumps while holding up
+        }
+    }, {passive: false});
+
+    window.addEventListener('touchend', (e) => {
+        if (isSwiping) {
+            isSwiping = false;
+            keys.left = false;
+            keys.right = false;
+            keys.up = false;
+        }
     });
 
     canvas.addEventListener('mousedown', (e) => {
@@ -2682,6 +2881,7 @@
         storeModal.style.display = 'flex';
         overlay.style.display = 'flex'; 
         overlay.style.backgroundColor = 'rgba(0,0,0,0.5)'; 
+        updateMobileControlsVisibility();
     }
 
     function closeStore() {
@@ -2691,6 +2891,7 @@
         overlay.style.display = 'none';
         overlay.style.backgroundColor = 'rgba(0,0,0,0.85)'; 
         keys.left = keys.right = keys.up = false; 
+        updateMobileControlsVisibility();
     }
 
     function renderStore() {
@@ -2891,6 +3092,7 @@
             gameState = 'playing';
             keys.left = keys.right = keys.up = false; 
             player.invulnerableTimer = 180; 
+            updateMobileControlsVisibility();
 
             if (isSavingLife) {
                 isSavingLife = false;
@@ -3007,12 +3209,14 @@
         storeModal.style.display = 'none';
 
         targetDisplay.style.display = 'block';
+        updateMobileControlsVisibility();
     }
 
     function showIntermission() {
         gameState = 'intermission';
         targetDisplay.style.display = 'none';
         overlay.style.display = 'flex';
+        updateMobileControlsVisibility();
         
         let title = document.getElementById('intermission-title');
         let text1 = document.getElementById('intermission-text1');
@@ -3158,11 +3362,13 @@
         intermissionScreen.style.display = 'none';
         
         targetDisplay.style.display = 'block';
+        updateMobileControlsVisibility();
     }
 
     function gameOver() {
         gameState = 'gameover';
         targetDisplay.style.display = 'none';
+        updateMobileControlsVisibility();
         
         document.getElementById('go-title').innerText = `Great Try, ${playerName}!`;
         document.getElementById('final-score').innerText = score;
@@ -3176,6 +3382,7 @@
     function winGame() {
         gameState = 'win';
         targetDisplay.style.display = 'none';
+        updateMobileControlsVisibility();
         
         document.getElementById('win-title').innerText = `You Did It, ${playerName}!`;
         document.getElementById('win-score').innerText = score;
@@ -3192,6 +3399,7 @@
         storeModal.style.display = 'none';
         readingModal.style.display = 'none';
         categorySelectScreen.style.display = 'none';
+        updateMobileControlsVisibility();
         
         overlay.style.display = 'flex';
         overlay.style.backgroundColor = 'rgba(0,0,0,0.85)';
@@ -3577,6 +3785,16 @@
         }
     }
 
+    document.getElementById('open-settings-btn').addEventListener('click', () => {
+        startScreen.style.display = 'none';
+        document.getElementById('settings-screen').style.display = 'flex';
+    });
+
+    document.getElementById('close-settings-btn').addEventListener('click', () => {
+        document.getElementById('settings-screen').style.display = 'none';
+        startScreen.style.display = 'flex';
+    });
+
     document.getElementById('start-btn').addEventListener('click', async () => {
         let inputName = nameInput.value.trim();
         let queryName = inputName !== '' ? inputName : 'Friend';
@@ -3741,6 +3959,7 @@
     readBtn.addEventListener('click', handleReadAction);
 
     goToMainMenu();
+    updateMobileControlsVisibility(); // Initialize hidden properly
 
     requestAnimationFrame(loop);
 
