@@ -1246,6 +1246,7 @@
     let swipeStartX = 0;
     let isSwiping = false;
     let lastTapTime = 0;
+    let swipeTouchId = null;
 
     window.addEventListener('touchstart', (e) => {
         if (gameState !== 'playing' || !isMobileMode) return;
@@ -1260,30 +1261,57 @@
         }
         lastTapTime = currentTime;
 
-        if (controlStyle === 'swipe') {
-            swipeStartX = e.touches[0].clientX;
-            isSwiping = true;
+        if (controlStyle === 'swipe' && swipeTouchId === null) {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                swipeTouchId = e.changedTouches[i].identifier;
+                swipeStartX = e.changedTouches[i].clientX;
+                isSwiping = true;
+                break;
+            }
         }
     }, {passive: false});
 
     window.addEventListener('touchmove', (e) => {
         if (!isSwiping || gameState !== 'playing') return;
-        e.preventDefault(); 
         
-        let cx = e.touches[0].clientX;
-        let dx = cx - swipeStartX;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === swipeTouchId) {
+                e.preventDefault(); 
+                
+                let cx = e.changedTouches[i].clientX;
+                let dx = cx - swipeStartX;
 
-        if (dx > 20) { keys.right = true; keys.left = false; }
-        else if (dx < -20) { keys.left = true; keys.right = false; }
-        else { keys.left = false; keys.right = false; }
+                if (dx > 20) { keys.right = true; keys.left = false; }
+                else if (dx < -20) { keys.left = true; keys.right = false; }
+                else { keys.left = false; keys.right = false; }
+            }
+        }
 
     }, {passive: false});
 
     window.addEventListener('touchend', (e) => {
         if (isSwiping) {
-            isSwiping = false;
-            keys.left = false;
-            keys.right = false;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === swipeTouchId) {
+                    isSwiping = false;
+                    swipeTouchId = null;
+                    keys.left = false;
+                    keys.right = false;
+                }
+            }
+        }
+    });
+
+    window.addEventListener('touchcancel', (e) => {
+        if (isSwiping) {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === swipeTouchId) {
+                    isSwiping = false;
+                    swipeTouchId = null;
+                    keys.left = false;
+                    keys.right = false;
+                }
+            }
         }
     });
 
@@ -3216,6 +3244,8 @@
         
         player = new Player();
         targetVowelEl.innerText = currentTargetTeam.toLowerCase(); 
+        words = [];
+        enemies = [];
         particles = [];
         floatingTexts = [];
         heartsList = [];
@@ -3375,6 +3405,8 @@
         player.hasDoubleJumped = false;
         
         targetVowelEl.innerText = currentTargetTeam.toLowerCase(); 
+        words = [];
+        enemies = [];
         particles = [];
         floatingTexts = [];
         heartsList = [];
