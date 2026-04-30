@@ -539,7 +539,7 @@
                         <span style="font-size: 20px; color: #fff;">Control Style</span>
                         <select id="control-style-select" style="padding: 8px; font-size: 16px; border-radius: 5px; background: #1e293b; color: white; border: 2px solid #4ade80;">
                             <option value="buttons">On-Screen Buttons</option>
-                            <option value="swipe">Swipe & Drag (Dbl Tap Fire)</option>
+                            <option value="swipe">Swipe (L/R) + Jump Button</option>
                         </select>
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -1206,7 +1206,7 @@
             if (controlStyle === 'swipe') {
                 document.getElementById('btn-left').style.display = 'none';
                 document.getElementById('btn-right').style.display = 'none';
-                document.getElementById('btn-jump').style.display = 'none';
+                document.getElementById('btn-jump').style.display = 'flex';
                 // Leave fire accessible in case double-tapping is difficult
                 document.getElementById('btn-fire').style.display = (currentLevel === 5 || currentLevel === 9) ? 'flex' : 'none'; 
             } else {
@@ -1244,7 +1244,6 @@
 
     // Swipe and double-tap logic mapping
     let swipeStartX = 0;
-    let swipeStartY = 0;
     let isSwiping = false;
     let lastTapTime = 0;
 
@@ -1263,7 +1262,6 @@
 
         if (controlStyle === 'swipe') {
             swipeStartX = e.touches[0].clientX;
-            swipeStartY = e.touches[0].clientY;
             isSwiping = true;
         }
     }, {passive: false});
@@ -1273,18 +1271,12 @@
         e.preventDefault(); 
         
         let cx = e.touches[0].clientX;
-        let cy = e.touches[0].clientY;
         let dx = cx - swipeStartX;
-        let dy = cy - swipeStartY;
 
         if (dx > 20) { keys.right = true; keys.left = false; }
         else if (dx < -20) { keys.left = true; keys.right = false; }
         else { keys.left = false; keys.right = false; }
 
-        if (dy < -40 && !keys.up) {
-            triggerJump();
-            swipeStartY = cy; // Reset to prevent infinite jumps while holding up
-        }
     }, {passive: false});
 
     window.addEventListener('touchend', (e) => {
@@ -1292,7 +1284,6 @@
             isSwiping = false;
             keys.left = false;
             keys.right = false;
-            keys.up = false;
         }
     });
 
@@ -3491,39 +3482,54 @@
         if (currentLevel === 10) {
             let highestPlat = platforms.reduce((highest, p) => p.y < highest.y ? p : highest, platforms[0]);
             if (highestPlat && highestPlat.y > -100) {
-                let w = Math.random() * 60 + 110; 
-                let yDiff = Math.random() * 30 + 90; 
+                let yDiff = Math.random() * 40 + 100;
                 let y = highestPlat.y - yDiff;
+                
+                let isDouble = Math.random() < 0.6; // 60% chance for a split path
 
-                let centerLast = highestPlat.x + highestPlat.w / 2;
-                let offset = Math.random() * 100 + 60; 
-                let dir = Math.random() < 0.5 ? 1 : -1;
-                
-                if (centerLast + (offset * dir) - w/2 < 10 || centerLast + (offset * dir) + w/2 > canvas.width - 10) {
-                    dir *= -1; // Reverse direction if it goes off screen
-                }
-                
-                let x = centerLast + (offset * dir) - w/2;
-                x = Math.max(10, Math.min(x, canvas.width - w - 10)); 
-                
-                let isMoving = Math.random() < 0.6;
-                let newPlat = new Platform(x, y, w, 20, isMoving);
-                if (isMoving) {
-                    newPlat.vx = (Math.random() > 0.5 ? 1 : -1) * (0.8 + Math.random() * 1.5);
-                }
-                platforms.push(newPlat);
-                
-                if (Math.random() < 0.6) {
-                    let isTarget = (words.filter(w => w.isTarget).length < 2) || Math.random() < 0.3;
-                    let logic = generateWordLogic(isTarget); 
+                if (isDouble) {
+                    let w1 = Math.random() * 40 + 100;
+                    let x1 = Math.random() * (canvas.width / 2 - w1 - 10) + 10;
+                    let p1 = new Platform(x1, y, w1, 20, Math.random() < 0.4);
+                    platforms.push(p1);
+
+                    let w2 = Math.random() * 40 + 100;
+                    let x2 = canvas.width / 2 + Math.random() * (canvas.width / 2 - w2 - 10) + 10;
+                    let p2 = new Platform(x2, y + (Math.random() * 40 - 20), w2, 20, Math.random() < 0.4);
+                    platforms.push(p2);
+
+                    let targetFirst = Math.random() < 0.5;
+                    let logic1 = generateWordLogic(targetFirst);
+                    let logic2 = generateWordLogic(!targetFirst);
                     
-                    let wordY = y - 45; 
-                    let wordX = x + w/2 - 40;
-                    words.push(new WordItem(wordX, wordY, logic.text, logic.team, logic.isTarget, logic.isBonus, logic.isDistractor, newPlat));
-                }
-                
-                if (Math.random() < 0.3 && enemies.length < 4) {
-                    enemies.push(new Enemy(platforms[platforms.length-1]));
+                    if (Math.random() < 0.9) words.push(new WordItem(x1 + w1/2 - 40, p1.y - 45, logic1.text, logic1.team, logic1.isTarget, logic1.isBonus, logic1.isDistractor, p1));
+                    if (Math.random() < 0.9) words.push(new WordItem(x2 + w2/2 - 40, p2.y - 45, logic2.text, logic2.team, logic2.isTarget, logic2.isBonus, logic2.isDistractor, p2));
+
+                    if (Math.random() < 0.35 && enemies.length < 5) enemies.push(new Enemy(Math.random() < 0.5 ? p1 : p2));
+
+                } else {
+                    let w = Math.random() * 60 + 160; 
+                    let centerLast = highestPlat.x + highestPlat.w / 2;
+                    let offset = Math.random() * 80 + 40; 
+                    let dir = Math.random() < 0.5 ? 1 : -1;
+                    
+                    if (centerLast + (offset * dir) - w/2 < 10 || centerLast + (offset * dir) + w/2 > canvas.width - 10) {
+                        dir *= -1; 
+                    }
+                    
+                    let x = centerLast + (offset * dir) - w/2;
+                    x = Math.max(10, Math.min(x, canvas.width - w - 10)); 
+                    
+                    let p = new Platform(x, y, w, 20, Math.random() < 0.6);
+                    platforms.push(p);
+                    
+                    // Single platforms MUST have a valid target word to prevent trapping
+                    if (Math.random() < 0.8) {
+                        let logic = generateWordLogic(true); 
+                        words.push(new WordItem(x + w/2 - 40, p.y - 45, logic.text, logic.team, logic.isTarget, logic.isBonus, logic.isDistractor, p));
+                    }
+                    
+                    if (Math.random() < 0.4 && enemies.length < 5) enemies.push(new Enemy(p));
                 }
             }
         }
