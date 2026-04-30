@@ -10,7 +10,7 @@
             padding: 0;
             background-color: #1a1a2e;
             color: #fff;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Nunito', 'Segoe UI', system-ui, -apple-system, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -95,6 +95,8 @@
             pointer-events: auto;
             text-align: center;
             z-index: 10;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
         }
 
         .screen {
@@ -104,13 +106,20 @@
             justify-content: center;
             width: 100%;
             height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
         }
 
         h1 {
-            color: #4ade80;
-            font-size: 48px;
+            background: linear-gradient(to right, #4ade80, #38bdf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 56px;
+            font-weight: 900;
             margin-bottom: 10px;
-            text-shadow: 4px 4px 0 #000;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            letter-spacing: 2px;
+            text-align: center;
         }
 
         p {
@@ -122,24 +131,28 @@
         }
 
         input[type="text"] {
-            padding: 12px;
-            font-size: 20px;
-            border-radius: 8px;
-            border: 3px solid #38bdf8;
-            margin-bottom: 15px;
-            width: 80%;
-            max-width: 250px;
+            padding: 15px;
+            font-size: 22px;
+            border-radius: 12px;
+            border: 2px solid #38bdf8;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 350px;
             text-align: center;
-            background: #1e293b;
+            background: rgba(30, 41, 59, 0.8);
             color: #fff;
             font-family: inherit;
+            font-weight: bold;
             pointer-events: auto;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
         }
 
         input[type="text"]:focus {
             outline: none;
             border-color: #facc15;
-            box-shadow: 0 0 10px #facc15;
+            box-shadow: 0 0 15px rgba(250, 204, 21, 0.5), inset 0 2px 4px rgba(0,0,0,0.5);
+            background: rgba(30, 41, 59, 1);
         }
 
         #admin-controls {
@@ -158,28 +171,40 @@
         }
 
         .btn {
-            background-color: #e94560;
+            background: linear-gradient(to bottom, #e94560, #b32d43);
             color: white;
-            border: 4px solid #fff;
-            padding: 15px 40px;
-            font-size: 24px;
+            border: none;
+            padding: 15px 35px;
+            font-size: 22px;
             font-family: inherit;
-            font-weight: bold;
+            font-weight: 800;
             cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.2s;
-            box-shadow: 0 6px 0 #b32d43;
+            border-radius: 12px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 6px 0 #8a1f30, 0 10px 15px rgba(0,0,0,0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
 
         .btn:hover {
             transform: translateY(2px);
-            box-shadow: 0 4px 0 #b32d43;
-            background-color: #f05a75;
+            box-shadow: 0 4px 0 #8a1f30, 0 6px 10px rgba(0,0,0,0.3);
+            background: linear-gradient(to bottom, #f05a75, #c4334a);
         }
 
         .btn:active {
             transform: translateY(6px);
-            box-shadow: 0 0 0 #b32d43;
+            box-shadow: 0 0 0 #8a1f30, 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        #start-btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 800px;
         }
 
         #health-bar {
@@ -471,11 +496,11 @@
                     </select>
                 </div>
                 
-                <div id="start-btn-group" style="display: flex; gap: 20px; margin-top: 10px;">
+                <div id="start-btn-group">
                     <button class="btn" id="start-btn">PLAY GAME</button>
-                    <button class="btn" id="endless-btn" style="background-color: #a855f7; box-shadow: 0 6px 0 #7e22ce;">ENDLESS CLIMB</button>
-                    <button class="btn" id="open-leaderboard-btn" style="background-color: #3b82f6; box-shadow: 0 6px 0 #1d4ed8;">SCORES</button>
-                    <button class="btn" id="open-settings-btn" style="background-color: #64748b; box-shadow: 0 6px 0 #475569;">SETTINGS</button>
+                    <button class="btn" id="endless-btn" style="background: linear-gradient(to bottom, #a855f7, #7e22ce); box-shadow: 0 6px 0 #581c87, 0 10px 15px rgba(0,0,0,0.3);">ENDLESS CLIMB</button>
+                    <button class="btn" id="open-leaderboard-btn" style="background: linear-gradient(to bottom, #3b82f6, #1d4ed8); box-shadow: 0 6px 0 #1e3a8a, 0 10px 15px rgba(0,0,0,0.3);">SCORES</button>
+                    <button class="btn" id="open-settings-btn" style="background: linear-gradient(to bottom, #64748b, #475569); box-shadow: 0 6px 0 #334155, 0 10px 15px rgba(0,0,0,0.3);">SETTINGS</button>
                 </div>
 
                 <div id="continue-prompt" style="display: none; flex-direction: column; align-items: center; margin-top: 10px;">
@@ -502,6 +527,10 @@
                             <option value="buttons">On-Screen Buttons</option>
                             <option value="swipe">Swipe & Drag (Dbl Tap Fire)</option>
                         </select>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <span style="font-size: 20px; color: #fff;">Speech Recognition</span>
+                        <input type="checkbox" id="speech-toggle" style="width: 24px; height: 24px;" checked>
                     </div>
                 </div>
                 <button class="btn" id="close-settings-btn" style="margin-top: 20px;">BACK</button>
@@ -605,8 +634,21 @@
 
     function resizeGame() {
         const wrapper = document.getElementById('game-wrapper');
-        const scale = Math.min(window.innerWidth / 800, window.innerHeight / 600);
-        wrapper.style.transform = `scale(${scale})`;
+        const container = document.getElementById('game-container');
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || ('ontouchstart' in window) || window.innerWidth <= 800;
+        
+        if (isMobile) {
+            const scaleX = window.innerWidth / 800;
+            const scaleY = window.innerHeight / 600;
+            wrapper.style.transform = `scale(${scaleX}, ${scaleY})`;
+            container.style.border = 'none';
+            container.style.borderRadius = '0';
+        } else {
+            const scale = Math.min(window.innerWidth / 800, window.innerHeight / 600);
+            wrapper.style.transform = `scale(${scale})`;
+            container.style.border = '4px solid #16213e';
+            container.style.borderRadius = '10px';
+        }
     }
     window.addEventListener('resize', resizeGame);
     resizeGame(); 
@@ -1070,30 +1112,42 @@
     // --- Mobile UI & Touch Handlers ---
     let isMobileMode = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || ('ontouchstart' in window);
     let controlStyle = 'buttons'; 
+    let useSpeechRecognition = true;
 
     try {
         let savedSettings = JSON.parse(localStorage.getItem('vowelTeamSettings'));
         if (savedSettings) {
             isMobileMode = savedSettings.isMobileMode;
             controlStyle = savedSettings.controlStyle || 'buttons';
+            if (savedSettings.useSpeechRecognition !== undefined) {
+                useSpeechRecognition = savedSettings.useSpeechRecognition;
+            }
         }
     } catch(e) {}
 
     const mobileToggle = document.getElementById('mobile-toggle');
     const controlStyleSelect = document.getElementById('control-style-select');
+    const speechToggle = document.getElementById('speech-toggle');
+    
     mobileToggle.checked = isMobileMode;
     controlStyleSelect.value = controlStyle;
+    speechToggle.checked = useSpeechRecognition;
 
     mobileToggle.addEventListener('change', (e) => {
         isMobileMode = e.target.checked;
-        localStorage.setItem('vowelTeamSettings', JSON.stringify({isMobileMode, controlStyle}));
+        localStorage.setItem('vowelTeamSettings', JSON.stringify({isMobileMode, controlStyle, useSpeechRecognition}));
         updateMobileControlsVisibility();
     });
 
     controlStyleSelect.addEventListener('change', (e) => {
         controlStyle = e.target.value;
-        localStorage.setItem('vowelTeamSettings', JSON.stringify({isMobileMode, controlStyle}));
+        localStorage.setItem('vowelTeamSettings', JSON.stringify({isMobileMode, controlStyle, useSpeechRecognition}));
         updateMobileControlsVisibility();
+    });
+
+    speechToggle.addEventListener('change', (e) => {
+        useSpeechRecognition = e.target.checked;
+        localStorage.setItem('vowelTeamSettings', JSON.stringify({isMobileMode, controlStyle, useSpeechRecognition}));
     });
 
     function updateMobileControlsVisibility() {
@@ -2970,8 +3024,13 @@
         readWordContainer.innerHTML = html;
         readingModal.style.display = 'flex';
         
-        readBtn.innerText = "🎙️ Click to Speak (Enter)";
-        readBtn.style.backgroundColor = "#e94560";
+        if (useSpeechRecognition && recognition) {
+            readBtn.innerText = "🎙️ Click to Speak (Enter)";
+            readBtn.style.backgroundColor = "#e94560";
+        } else {
+            readBtn.innerText = "⏭️ Skip Reading (Enter)";
+            readBtn.style.backgroundColor = "#64748b";
+        }
     }
 
     function handleWordHit(w, i) {
@@ -3866,7 +3925,7 @@
         recognition = new SpeechRecognition();
         recognition.continuous = false;
         recognition.lang = 'en-US';
-        recognition.interimResults = false;
+        recognition.interimResults = true; // Enables instantaneous feedback
         recognition.maxAlternatives = 1;
 
         recognition.onstart = () => {
@@ -3876,28 +3935,37 @@
         };
 
         recognition.onresult = (event) => {
-            let spokenWord = event.results[0][0].transcript.toLowerCase().trim();
-            spokenWord = spokenWord.replace(/[.,!?]/g, ''); 
-            
             let targetWord = currentReadingWords[currentReadingIndex].toLowerCase();
-            
-            let isCorrect = spokenWord === targetWord || 
-                            spokenWord.startsWith(targetWord) || 
-                            targetWord.startsWith(spokenWord) ||
-                            spokenWord.includes(targetWord);
-                            
-            if (!isCorrect && looseMatches[targetWord]) {
-                if (looseMatches[targetWord].some(match => spokenWord.includes(match))) {
+            let isCorrect = false;
+            let spokenWord = "";
+            let isFinalResult = event.results[event.results.length - 1].isFinal;
+
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                let transcript = event.results[i][0].transcript.toLowerCase().trim().replace(/[.,!?]/g, '');
+                spokenWord = transcript; // Keep last transcribed word for feedback
+                
+                if (transcript === targetWord || 
+                    transcript.startsWith(targetWord) || 
+                    targetWord.startsWith(transcript) ||
+                    transcript.includes(targetWord)) {
                     isCorrect = true;
+                    break;
+                }
+                
+                if (looseMatches[targetWord] && looseMatches[targetWord].some(match => transcript.includes(match))) {
+                    isCorrect = true;
+                    break;
                 }
             }
             
             if (isCorrect) {
+                recognition.stop();
                 readBtn.innerText = "Correct! 🌟";
                 readBtn.style.backgroundColor = "#4ade80"; 
                 failedAttempts = 0;
-                setTimeout(() => advanceReading(), 700); 
-            } else {
+                setTimeout(() => advanceReading(), 400); // Faster advance
+            } else if (isFinalResult) {
+                // Only process errors if this is a final (non-interim) result piece
                 failedAttempts++;
                 if (failedAttempts >= 3) {
                     readBtn.innerText = `It's "${targetWord}"!`;
@@ -3917,7 +3985,7 @@
                             readBtn.innerText = "🎙️ Click to Speak (Enter)";
                             readBtn.style.backgroundColor = "#e94560";
                         }
-                    }, 2500);
+                    }, 2000);
                 }
             }
         };
@@ -3943,7 +4011,7 @@
     }
 
     function handleReadAction() {
-        if (!recognition) {
+        if (!useSpeechRecognition || !recognition) {
             advanceReading();
             return;
         }
