@@ -657,7 +657,6 @@
         let availableWidth = window.innerWidth;
         
         if (isMobile) {
-            // Dynamic logical size for mobile to utilize vertical space
             let logicalWidth = 800;
             let logicalHeight = logicalWidth * (availableHeight / availableWidth);
             if (logicalHeight > 1800) logicalHeight = 1800; 
@@ -677,15 +676,12 @@
             container.style.border = 'none';
             container.style.borderRadius = '0';
             
-            // FIX: Force the visual canvas element to shrink to the screen boundaries
             canvas.style.width = '100%';
             canvas.style.height = '100%';
         } else {
-            // Standard fixed layout for Desktop
             canvas.width = 800;
             canvas.height = 600;
             
-            // Reset mobile CSS
             canvas.style.width = '';
             canvas.style.height = '';
             
@@ -1902,6 +1898,247 @@
         }
     }
 
+    class Enemy {
+        constructor(plat) {
+            this.plat = plat;
+            this.w = 32;
+            this.h = 24;
+            this.x = plat.x + Math.random() * (plat.w - this.w);
+            this.y = plat.y - this.h;
+            this.vx = (Math.random() > 0.5 ? 1 : -1) * 0.8;
+            this.active = true;
+            this.jammed = false;
+            
+            if (currentLevel === 1) this.color = '#ef4444';
+            else if (currentLevel === 2) this.color = '#a855f7';
+            else if (currentLevel === 3) this.color = '#0ea5e9';
+            else if (currentLevel === 4) this.color = '#f97316';
+            else if (currentLevel === 5) this.color = '#ef4444';
+            else if (currentLevel === 6) this.color = '#84cc16';
+            else if (currentLevel === 7) this.color = '#10b981';
+            else if (currentLevel === 8) this.color = '#22c55e';
+            else if (currentLevel === 9) this.color = '#94a3b8';
+            else this.color = '#ef4444';
+        }
+
+        update() {
+            if (this.jammed) {
+                if (this.plat.isMoving) this.x += this.plat.vx;
+                if (this.plat.isMovingVert) this.y += this.plat.vy;
+                return;
+            }
+            
+            this.x += this.vx;
+            if (this.plat.isMoving) this.x += this.plat.vx;
+            this.y = this.plat.y - this.h;
+            if (this.plat.isMovingVert) this.y += this.plat.vy;
+
+            if (this.x < this.plat.x || this.x + this.w > this.plat.x + this.plat.w) {
+                this.vx *= -1;
+                this.x = Math.max(this.plat.x, Math.min(this.x, this.plat.x + this.plat.w - this.w));
+            }
+
+            if (player.invulnerableTimer === 0 && !player.isHidden &&
+                player.x < this.x + this.w && player.x + player.w > this.x &&
+                player.y < this.y + this.h && player.y + player.h > this.y) {
+                
+                if (player.vy > 0 && player.y + player.h - player.vy <= this.y + 12) {
+                    this.active = false;
+                    player.vy = playerJumpPower * 0.8; 
+                    playSound('stomp');
+                    score += 50;
+                    tokens += 50;
+                    spawnParticles(this.x + this.w/2, this.y + this.h/2, this.color);
+                    floatingTexts.push(new FloatingText(this.x + this.w/2, this.y, "+50", this.color));
+                    updateHUD(); 
+                } else {
+                    takeDamage();
+                }
+            }
+            
+            for (let p of projectiles) {
+                if (p.active && p.x < this.x + this.w && p.x + p.w > this.x && p.y < this.y + this.h && p.y + p.h > this.y) {
+                    p.active = false;
+                    if (currentLevel === 9) {
+                        this.jammed = true;
+                        playSound('stomp');
+                        spawnParticles(this.x + this.w/2, this.y + this.h/2, '#facc15');
+                    } else {
+                        this.active = false;
+                        playSound('stomp');
+                        score += 50;
+                        tokens += 50;
+                        spawnParticles(this.x + this.w/2, this.y + this.h/2, this.color);
+                        floatingTexts.push(new FloatingText(this.x + this.w/2, this.y, "+50", this.color));
+                        updateHUD(); 
+                    }
+                }
+            }
+        }
+
+        draw() {
+            if (!this.active) return;
+            let bob = Math.sin(Date.now() / 120) * 3; 
+
+            if (currentLevel === 5) {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.ellipse(this.x + this.w/2, this.y + this.h/2 + bob + 4, 12, 8, 0, 0, Math.PI*2);
+                ctx.fill();
+                
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 2;
+                let legSwing = Math.sin(Date.now() / 80) * 4;
+                ctx.beginPath(); ctx.moveTo(this.x + 8, this.y + this.h/2 + 4 + bob); ctx.lineTo(this.x - 2 - legSwing, this.y + this.h + bob); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(this.x + 10, this.y + this.h/2 + 6 + bob); ctx.lineTo(this.x + 2 - legSwing, this.y + this.h + bob); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(this.x + this.w - 8, this.y + this.h/2 + 4 + bob); ctx.lineTo(this.x + this.w + 2 + legSwing, this.y + this.h + bob); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(this.x + this.w - 10, this.y + this.h/2 + 6 + bob); ctx.lineTo(this.x + this.w - 2 + legSwing, this.y + this.h + bob); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(this.x + 6, this.y + this.h/2 + bob); ctx.lineTo(this.x, this.y + bob); ctx.stroke();
+                ctx.beginPath(); ctx.arc(this.x, this.y + bob, 4, Math.PI*0.5, Math.PI*1.5); ctx.fill(); 
+                ctx.beginPath(); ctx.moveTo(this.x + this.w - 6, this.y + this.h/2 + bob); ctx.lineTo(this.x + this.w, this.y + bob); ctx.stroke();
+                ctx.beginPath(); ctx.arc(this.x + this.w, this.y + bob, 4, -Math.PI*0.5, Math.PI*0.5); ctx.fill(); 
+
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.arc(this.x + this.w/2 - 4, this.y + 4 + bob, 3, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(this.x + this.w/2 + 4, this.y + 4 + bob, 3, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#000';
+                let lookDir = this.vx > 0 ? 1 : -1;
+                ctx.beginPath(); ctx.arc(this.x + this.w/2 - 4 + lookDir, this.y + 4 + bob, 1.5, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(this.x + this.w/2 + 4 + lookDir, this.y + 4 + bob, 1.5, 0, Math.PI*2); ctx.fill();
+                return;
+            } else if (currentLevel === 6) {
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 6;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y + this.h);
+                for(let i=0; i<this.w; i+=4) ctx.lineTo(this.x + i, this.y + this.h - 4 + Math.sin(i*0.2 + Date.now()/200)*3);
+                ctx.stroke();
+                ctx.fillStyle = this.color;
+                ctx.beginPath(); ctx.arc(this.x + (this.vx>0?this.w:0), this.y + this.h - 6 + Math.sin((this.w)*0.2 + Date.now()/200)*3, 6, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#facc15'; ctx.beginPath(); ctx.arc(this.x + (this.vx>0?this.w+2:-2), this.y + this.h - 8 + Math.sin((this.w)*0.2 + Date.now()/200)*3, 2, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = '#ef4444'; ctx.lineWidth=2;
+                ctx.beginPath(); ctx.moveTo(this.x + (this.vx>0?this.w+6:-6), this.y + this.h - 6 + Math.sin((this.w)*0.2 + Date.now()/200)*3); 
+                ctx.lineTo(this.x + (this.vx>0?this.w+10:-10), this.y + this.h - 6 + Math.sin((this.w)*0.2 + Date.now()/200)*3); ctx.stroke();
+                return;
+            } else if (currentLevel === 7) {
+                ctx.fillStyle = this.color;
+                ctx.beginPath(); ctx.ellipse(this.x+this.w/2, this.y+this.h/2+bob, 8, 6, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                ctx.beginPath(); ctx.ellipse(this.x+this.w/2-4, this.y+this.h/2-4+bob, 6, 4, -0.5, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(this.x+this.w/2+4, this.y+this.h/2-4+bob, 6, 4, 0.5, 0, Math.PI*2); ctx.fill();
+                return;
+            } else if (currentLevel === 8) {
+                ctx.fillStyle = '#16a34a'; 
+                ctx.fillRect(this.x + this.w/2 - 3, this.y + 10 + bob, 6, 12);
+                
+                ctx.fillStyle = '#ef4444'; 
+                ctx.beginPath();
+                if (this.isClosed) {
+                    ctx.arc(this.x + this.w/2, this.y + 10 + bob, 10, 0, Math.PI*2);
+                } else {
+                    let mouthOpen = Math.abs(Math.sin(Date.now()/150)) * 0.8; 
+                    let startAngle = -Math.PI/2 + mouthOpen; 
+                    let endAngle = Math.PI*1.5 - mouthOpen; 
+                    ctx.arc(this.x + this.w/2, this.y + 10 + bob, 10, startAngle, endAngle);
+                    ctx.lineTo(this.x + this.w/2, this.y + 10 + bob);
+                }
+                ctx.fill();
+                
+                ctx.fillStyle = '#fff'; 
+                ctx.beginPath(); ctx.arc(this.x + this.w/2 - 4, this.y + 4 + bob, 2, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(this.x + this.w/2 + 4, this.y + 14 + bob, 2, 0, Math.PI*2); ctx.fill();
+                return;
+            } else if (currentLevel === 9) {
+                ctx.fillStyle = this.color;
+                
+                if (this.jammed) {
+                    ctx.fillStyle = '#facc15';
+                    ctx.fillRect(this.x + Math.random() * this.w, this.y + Math.random() * this.h, 4, 4);
+                }
+                
+                ctx.beginPath(); ctx.ellipse(this.x + this.w/2, this.y + this.h/2 + bob, 14, 8, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#cbd5e1';
+                let bladeWidth = this.jammed ? 20 : Math.abs(Math.cos(Date.now() / 50)) * 16 + 4;
+                ctx.fillRect(this.x + this.w/2 - bladeWidth/2, this.y - 4 + bob, bladeWidth, 2);
+                ctx.fillStyle = '#64748b';
+                ctx.fillRect(this.x + this.w/2 - 2, this.y - 2 + bob, 4, 4);
+                ctx.fillStyle = this.jammed ? '#3b82f6' : '#ef4444';
+                ctx.beginPath(); ctx.arc(this.x + (this.vx>0?20:6), this.y + this.h/2 + bob, 3, 0, Math.PI*2); ctx.fill();
+                return;
+            }
+
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y + this.h);
+            ctx.lineTo(this.x + this.w, this.y + this.h);
+            ctx.lineTo(this.x + this.w - 2, this.y + bob);
+            ctx.lineTo(this.x + this.w/2 + 4, this.y - 6 + bob);
+            ctx.lineTo(this.x + this.w/2, this.y + bob);
+            ctx.lineTo(this.x + this.w/2 - 4, this.y - 6 + bob);
+            ctx.lineTo(this.x + 2, this.y + bob);
+            ctx.fill();
+            
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(this.x + 6, this.y + 6 + bob, 6, 6);
+            ctx.fillRect(this.x + 16, this.y + 6 + bob, 6, 6);
+            ctx.fillStyle = '#000';
+            let lookDir = this.vx > 0 ? 2 : 0;
+            ctx.fillRect(this.x + 8 + lookDir, this.y + 8 + bob, 2, 2);
+            ctx.fillRect(this.x + 18 + lookDir, this.y + 8 + bob, 2, 2);
+        }
+    }
+
+    class HeartItem {
+        constructor(plat) {
+            this.plat = plat;
+            this.w = 20;
+            this.h = 20;
+            this.x = plat.x + Math.random() * (plat.w - this.w);
+            this.y = plat.y - this.h - 15;
+            this.active = true;
+            this.bobOffset = Math.random() * Math.PI * 2;
+        }
+        update() {
+            if (this.plat.isMoving) this.x += this.plat.vx;
+            this.y = this.plat.y - this.h - 15 + (this.plat.isMovingVert ? this.plat.vy : 0);
+        }
+        draw() {
+            if (!this.active) return;
+            let bob = Math.sin(this.bobOffset + Date.now() / 150) * 4;
+            ctx.fillStyle = '#ef4444';
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('♥', this.x + this.w/2, this.y + this.h/2 + bob);
+        }
+    }
+
+    class ShellItem {
+        constructor(plat) {
+            this.plat = plat;
+            this.w = 20;
+            this.h = 20;
+            this.x = plat.x + Math.random() * (plat.w - this.w);
+            this.y = plat.y - this.h - 15;
+            this.active = true;
+            this.bobOffset = Math.random() * Math.PI * 2;
+        }
+        update() {
+            if (this.plat.isMoving) this.x += this.plat.vx;
+            this.y = this.plat.y - this.h - 15 + (this.plat.isMovingVert ? this.plat.vy : 0);
+        }
+        draw() {
+            if (!this.active) return;
+            let bob = Math.sin(this.bobOffset + Date.now() / 150) * 4;
+            ctx.fillStyle = currentLevel === 9 ? '#06b6d4' : '#facc15';
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(currentLevel === 9 ? '🔋' : '🐚', this.x + this.w/2, this.y + this.h/2 + bob);
+        }
+    }
+
     class Platform {
         constructor(x, y, w, h, isMoving = false, isMovingVert = false) {
             this.x = x;
@@ -2256,7 +2493,7 @@
             this.bobOffset = Math.random() * Math.PI * 2;
             this.active = true;
             
-            this.isFloating = (currentLevel === 2); // Disabled floating for endless so clouds are clear
+            this.isFloating = (currentLevel === 2); 
             this.vx = this.isFloating ? ((Math.random() - 0.5) * 1.5) : 0;
             this.vy = this.isFloating ? ((Math.random() - 0.5) * 1.5) : 0;
             
@@ -2288,114 +2525,32 @@
 
         draw() {
             if (!this.active) return;
-            let bob = Math.sin(Date.now() / 120) * 3; 
+            let bob = this.isFloating ? 0 : Math.sin(this.bobOffset + Date.now() / 150) * 4;
+            let drawY = this.y + bob;
 
-            if (currentLevel === 5) {
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.ellipse(this.x + this.w/2, this.y + this.h/2 + bob + 4, 12, 8, 0, 0, Math.PI*2);
-                ctx.fill();
-                
-                ctx.strokeStyle = this.color;
-                ctx.lineWidth = 2;
-                let legSwing = Math.sin(Date.now() / 80) * 4;
-                ctx.beginPath(); ctx.moveTo(this.x + 8, this.y + this.h/2 + 4 + bob); ctx.lineTo(this.x - 2 - legSwing, this.y + this.h + bob); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(this.x + 10, this.y + this.h/2 + 6 + bob); ctx.lineTo(this.x + 2 - legSwing, this.y + this.h + bob); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(this.x + this.w - 8, this.y + this.h/2 + 4 + bob); ctx.lineTo(this.x + this.w + 2 + legSwing, this.y + this.h + bob); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(this.x + this.w - 10, this.y + this.h/2 + 6 + bob); ctx.lineTo(this.x + this.w - 2 + legSwing, this.y + this.h + bob); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(this.x + 6, this.y + this.h/2 + bob); ctx.lineTo(this.x, this.y + bob); ctx.stroke();
-                ctx.beginPath(); ctx.arc(this.x, this.y + bob, 4, Math.PI*0.5, Math.PI*1.5); ctx.fill(); 
-                ctx.beginPath(); ctx.moveTo(this.x + this.w - 6, this.y + this.h/2 + bob); ctx.lineTo(this.x + this.w, this.y + bob); ctx.stroke();
-                ctx.beginPath(); ctx.arc(this.x + this.w, this.y + bob, 4, -Math.PI*0.5, Math.PI*0.5); ctx.fill(); 
-
-                ctx.fillStyle = '#fff';
-                ctx.beginPath(); ctx.arc(this.x + this.w/2 - 4, this.y + 4 + bob, 3, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(this.x + this.w/2 + 4, this.y + 4 + bob, 3, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = '#000';
-                let lookDir = this.vx > 0 ? 1 : -1;
-                ctx.beginPath(); ctx.arc(this.x + this.w/2 - 4 + lookDir, this.y + 4 + bob, 1.5, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(this.x + this.w/2 + 4 + lookDir, this.y + 4 + bob, 1.5, 0, Math.PI*2); ctx.fill();
-                return;
-            } else if (currentLevel === 6) {
-                ctx.strokeStyle = this.color;
-                ctx.lineWidth = 6;
-                ctx.lineCap = 'round';
-                ctx.beginPath();
-                ctx.moveTo(this.x, this.y + this.h);
-                for(let i=0; i<this.w; i+=4) ctx.lineTo(this.x + i, this.y + this.h - 4 + Math.sin(i*0.2 + Date.now()/200)*3);
-                ctx.stroke();
-                ctx.fillStyle = this.color;
-                ctx.beginPath(); ctx.arc(this.x + (this.vx>0?this.w:0), this.y + this.h - 6 + Math.sin((this.w)*0.2 + Date.now()/200)*3, 6, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = '#facc15'; ctx.beginPath(); ctx.arc(this.x + (this.vx>0?this.w+2:-2), this.y + this.h - 8 + Math.sin((this.w)*0.2 + Date.now()/200)*3, 2, 0, Math.PI*2); ctx.fill();
-                ctx.strokeStyle = '#ef4444'; ctx.lineWidth=2;
-                ctx.beginPath(); ctx.moveTo(this.x + (this.vx>0?this.w+6:-6), this.y + this.h - 6 + Math.sin((this.w)*0.2 + Date.now()/200)*3); 
-                ctx.lineTo(this.x + (this.vx>0?this.w+10:-10), this.y + this.h - 6 + Math.sin((this.w)*0.2 + Date.now()/200)*3); ctx.stroke();
-                return;
-            } else if (currentLevel === 7) {
-                ctx.fillStyle = this.color;
-                ctx.beginPath(); ctx.ellipse(this.x+this.w/2, this.y+this.h/2+bob, 8, 6, 0, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = 'rgba(255,255,255,0.7)';
-                ctx.beginPath(); ctx.ellipse(this.x+this.w/2-4, this.y+this.h/2-4+bob, 6, 4, -0.5, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.ellipse(this.x+this.w/2+4, this.y+this.h/2-4+bob, 6, 4, 0.5, 0, Math.PI*2); ctx.fill();
-                return;
-            } else if (currentLevel === 8) {
-                ctx.fillStyle = '#16a34a'; 
-                ctx.fillRect(this.x + this.w/2 - 3, this.y + 10 + bob, 6, 12);
-                
-                ctx.fillStyle = '#ef4444'; 
-                ctx.beginPath();
-                if (this.isClosed) {
-                    ctx.arc(this.x + this.w/2, this.y + 10 + bob, 10, 0, Math.PI*2);
-                } else {
-                    let mouthOpen = Math.abs(Math.sin(Date.now()/150)) * 0.8; 
-                    let startAngle = -Math.PI/2 + mouthOpen; 
-                    let endAngle = Math.PI*1.5 - mouthOpen; 
-                    ctx.arc(this.x + this.w/2, this.y + 10 + bob, 10, startAngle, endAngle);
-                    ctx.lineTo(this.x + this.w/2, this.y + 10 + bob);
-                }
-                ctx.fill();
-                
-                ctx.fillStyle = '#fff'; 
-                ctx.beginPath(); ctx.arc(this.x + this.w/2 - 4, this.y + 4 + bob, 2, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(this.x + this.w/2 + 4, this.y + 14 + bob, 2, 0, Math.PI*2); ctx.fill();
-                return;
-            } else if (currentLevel === 9) {
-                ctx.fillStyle = this.color;
-                
-                if (this.jammed) {
-                    ctx.fillStyle = '#facc15';
-                    ctx.fillRect(this.x + Math.random() * this.w, this.y + Math.random() * this.h, 4, 4);
-                }
-                
-                ctx.beginPath(); ctx.ellipse(this.x + this.w/2, this.y + this.h/2 + bob, 14, 8, 0, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = '#cbd5e1';
-                let bladeWidth = this.jammed ? 20 : Math.abs(Math.cos(Date.now() / 50)) * 16 + 4;
-                ctx.fillRect(this.x + this.w/2 - bladeWidth/2, this.y - 4 + bob, bladeWidth, 2);
-                ctx.fillStyle = '#64748b';
-                ctx.fillRect(this.x + this.w/2 - 2, this.y - 2 + bob, 4, 4);
-                ctx.fillStyle = this.jammed ? '#3b82f6' : '#ef4444';
-                ctx.beginPath(); ctx.arc(this.x + (this.vx>0?20:6), this.y + this.h/2 + bob, 3, 0, Math.PI*2); ctx.fill();
-                return;
-            }
-
-            ctx.fillStyle = this.color;
+            ctx.fillStyle = this.isBonus ? '#facc15' : (this.isTarget ? '#4ade80' : '#38bdf8');
+            if (this.isDistractor) ctx.fillStyle = '#f87171';
+            
+            ctx.shadowBlur = this.isBonus ? 15 : 0;
+            ctx.shadowColor = '#facc15';
+            
             ctx.beginPath();
-            ctx.moveTo(this.x, this.y + this.h);
-            ctx.lineTo(this.x + this.w, this.y + this.h);
-            ctx.lineTo(this.x + this.w - 2, this.y + bob);
-            ctx.lineTo(this.x + this.w/2 + 4, this.y - 6 + bob);
-            ctx.lineTo(this.x + this.w/2, this.y + bob);
-            ctx.lineTo(this.x + this.w/2 - 4, this.y - 6 + bob);
-            ctx.lineTo(this.x + 2, this.y + bob);
+            ctx.roundRect(this.x, drawY, this.w, this.h, 6);
             ctx.fill();
             
-            ctx.fillStyle = '#fff';
-            ctx.fillRect(this.x + 6, this.y + 6 + bob, 6, 6);
-            ctx.fillRect(this.x + 16, this.y + 6 + bob, 6, 6);
-            ctx.fillStyle = '#000';
-            let lookDir = this.vx > 0 ? 2 : 0;
-            ctx.fillRect(this.x + 8 + lookDir, this.y + 8 + bob, 2, 2);
-            ctx.fillRect(this.x + 18 + lookDir, this.y + 8 + bob, 2, 2);
+            ctx.shadowBlur = 0;
+
+            ctx.fillStyle = '#0f172a';
+            ctx.font = 'bold ' + (this.isBonus ? '18px' : '16px') + ' sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(this.text, this.x + this.w / 2, drawY + this.h / 2);
+
+            if (this.multiplier > 1 && !this.isBonus) {
+                ctx.fillStyle = '#facc15';
+                ctx.font = 'bold 12px sans-serif';
+                ctx.fillText(`x${this.multiplier}`, this.x + this.w - 12, drawY + 10);
+            }
         }
     }
 
@@ -3493,19 +3648,19 @@
         
         let activeEnemiesCount = enemies.filter(e => !e.jammed).length;
         if (activeEnemiesCount === 0 && currentLevel !== 10) {
-            enemyRespawnTimer = Math.min(enemyRespawnTimer, 60); // Fast trigger when completely cleared!
+            enemyRespawnTimer = Math.min(enemyRespawnTimer, 60); 
         }
 
         if (enemyRespawnTimer <= 0 && currentLevel !== 10) {
             if (enemies.length < 4) { 
                 let validPlats = platforms.slice(1).filter(p => Math.abs(p.x - player.x) > 200);
-                if (validPlats.length === 0) validPlats = platforms.slice(1); // Saftey fallback to any platform
+                if (validPlats.length === 0) validPlats = platforms.slice(1); 
 
                 if (validPlats.length > 0) {
                     enemies.push(new Enemy(validPlats[Math.floor(Math.random() * validPlats.length)]));
                 }
             }
-            enemyRespawnTimer = Math.random() * 120 + 180; // Reliable 3 to 5 second respawn delay
+            enemyRespawnTimer = Math.random() * 120 + 180; 
         }
 
         heartSpawnTimer--;
@@ -3773,7 +3928,7 @@
         recognition = new SpeechRecognition();
         recognition.continuous = false;
         recognition.lang = 'en-US';
-        recognition.interimResults = true; // Enables instantaneous feedback
+        recognition.interimResults = true; 
         recognition.maxAlternatives = 1;
 
         recognition.onstart = () => {
@@ -3790,7 +3945,7 @@
 
             for (let i = event.resultIndex; i < event.results.length; i++) {
                 let transcript = event.results[i][0].transcript.toLowerCase().trim().replace(/[.,!?]/g, '');
-                spokenWord = transcript; // Keep last transcribed word for feedback
+                spokenWord = transcript; 
                 
                 if (transcript === targetWord || 
                     transcript.startsWith(targetWord) || 
@@ -3811,9 +3966,8 @@
                 readBtn.innerText = "Correct! 🌟";
                 readBtn.style.backgroundColor = "#4ade80"; 
                 failedAttempts = 0;
-                setTimeout(() => advanceReading(), 400); // Faster advance
+                setTimeout(() => advanceReading(), 400); 
             } else if (isFinalResult) {
-                // Only process errors if this is a final (non-interim) result piece
                 failedAttempts++;
                 if (failedAttempts >= 3) {
                     readBtn.innerText = `It's "${targetWord}"!`;
@@ -3875,7 +4029,7 @@
     readBtn.addEventListener('click', handleReadAction);
 
     goToMainMenu();
-    updateMobileControlsVisibility(); // Initialize hidden properly
+    updateMobileControlsVisibility(); 
 
     requestAnimationFrame(loop);
 
