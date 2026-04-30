@@ -676,10 +676,19 @@
             container.style.height = '100%';
             container.style.border = 'none';
             container.style.borderRadius = '0';
+            
+            // FIX: Force the visual canvas element to shrink to the screen boundaries
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
         } else {
             // Standard fixed layout for Desktop
             canvas.width = 800;
             canvas.height = 600;
+            
+            // Reset mobile CSS
+            canvas.style.width = '';
+            canvas.style.height = '';
+            
             const scale = Math.min(window.innerWidth / 800, availableHeight / 600);
             
             wrapper.style.transform = `scale(${scale})`;
