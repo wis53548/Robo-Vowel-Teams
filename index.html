@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vowel Teams Adventure!</title>
+    <title>Vowel Team Adventure!</title>
     <style>
         body {
             margin: 0;
@@ -298,6 +298,41 @@
             height: 100%;
             pointer-events: none;
         }
+
+        #last-name-modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+            text-align: center;
+            z-index: 20;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .ln-btn {
+            font-size: clamp(40px, 10vw, 80px);
+            margin: 10px;
+            cursor: pointer;
+            padding: 15px 30px;
+            border-radius: 15px;
+            border: 4px solid white;
+            transition: transform 0.2s;
+        }
+
+        .ln-btn:hover {
+            transform: scale(1.1);
+        }
+
+        #ln-check { background-color: #4ade80; }
+        #ln-x { background-color: #ef4444; }
 
         #store-modal {
             position: absolute;
@@ -622,6 +657,14 @@
             <button class="btn" id="read-btn">🎙️ Click to Speak (Enter)</button>
         </div>
 
+        <div id="last-name-modal">
+            <h2 style="color: #facc15; font-size: clamp(32px, 8vw, 48px); margin: 0 0 30px 0;">Did you Spell it correctly?</h2>
+            <div style="display: flex; gap: 40px;">
+                <button id="ln-check" class="ln-btn">✔️</button>
+                <button id="ln-x" class="ln-btn">❌</button>
+            </div>
+        </div>
+
         <div id="store-modal">
             <div class="store-header">
                 <h2>Robot Upgrade Shop</h2>
@@ -836,7 +879,7 @@
     const teams = Object.keys(wordLists);
     
     const distractorWords = ['cat', 'dog', 'bat', 'pig', 'log', 'bug', 'rug', 'hat', 'mat', 'sun', 'run', 'box', 'fox', 'map', 'hop', 'lip', 'sit'];
-    const bonusWords = ['lake', 'bike', 'kite', 'rose', 'cube', 'make', 'bake', 'time', 'home', 'note', 'game', 'cape', 'rope', 'tube'];
+    const bonusWords = ['lake', 'bike', 'kite', 'rose', 'cube', 'make', 'bake', 'time', 'home', 'note', 'game', 'cape', 'rope', 'tube', 'palomino', 'palomino', 'palomino', 'palomino', 'palomino'];
 
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     let audioCtx;
@@ -951,6 +994,10 @@
     const targetDisplay = document.getElementById('target-display');
     const targetVowelEl = document.getElementById('target-vowel');
 
+    const lastNameModal = document.getElementById('last-name-modal');
+    const lnCheckBtn = document.getElementById('ln-check');
+    const lnXBtn = document.getElementById('ln-x');
+
     const readingModal = document.getElementById('reading-modal');
     const readWordContainer = document.getElementById('read-word-container');
     const readBtn = document.getElementById('read-btn');
@@ -967,7 +1014,7 @@
     const startEndlessBtn = document.getElementById('start-endless-btn');
     const cancelEndlessBtn = document.getElementById('cancel-endless-btn');
 
-    const urlNissan = 'https://images.unsplash.com/photo-1611821064430-0d40221e95f3?auto=format&fit=crop&w=800&q=80';
+    const urlNissan = 'https://www.motorbiscuit.com/wp-content/uploads/2023/05/1999-skyline-R34.webp';
     const urlPorsche = 'https://images.unsplash.com/photo-1503376760302-7669af662204?auto=format&fit=crop&w=800&q=80';
     const urlFerrari = 'https://images.unsplash.com/photo-1592198084004-e46ce0a16e41?auto=format&fit=crop&w=800&q=80';
     const urlLambo = 'https://images.unsplash.com/photo-1544829099-b9a0c6229510?auto=format&fit=crop&w=800&q=80';
@@ -976,7 +1023,7 @@
     const urlMcLaren = 'https://images.unsplash.com/photo-1614200187024-dc47dc402b80?auto=format&fit=crop&w=800&q=80';
     const urlCamaro = 'https://images.unsplash.com/photo-1550508122-f38b25adb075?auto=format&fit=crop&w=800&q=80';
     const urlBugatti = 'https://images.unsplash.com/photo-1608848461950-0fe51dfc41cb?auto=format&fit=crop&w=800&q=80';
-    const urlBMW = 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=800&q=80';
+    const urlBMW = 'https://cdn.shopify.com/s/files/1/0720/8406/2487/files/BMW_Custom_Black_Wrap.jpg?v=1727949122';
     const urlAudi = 'https://images.unsplash.com/photo-1617531653332-bd46c24f2068?auto=format&fit=crop&w=800&q=80';
 
     const shopItems = {
@@ -2520,6 +2567,9 @@
             if (this.isBonus) {
                 this.multiplier = 1; 
                 this.w = 100; 
+            } else if (this.text === "your last name") {
+                this.multiplier = 1;
+                this.w = 150;
             } else if (isTarget) {
                 let r = Math.random();
                 if (r < 0.15) this.multiplier = 3; 
@@ -2549,9 +2599,10 @@
 
             ctx.fillStyle = this.isBonus ? '#facc15' : (this.isTarget ? '#4ade80' : '#38bdf8');
             if (this.isDistractor) ctx.fillStyle = '#f87171';
+            if (this.text === "your last name") ctx.fillStyle = '#a855f7';
             
-            ctx.shadowBlur = this.isBonus ? 15 : 0;
-            ctx.shadowColor = '#facc15';
+            ctx.shadowBlur = (this.isBonus || this.text === "your last name") ? 15 : 0;
+            ctx.shadowColor = (this.text === "your last name") ? '#a855f7' : '#facc15';
             
             ctx.beginPath();
             ctx.roundRect(this.x, drawY, this.w, this.h, 6);
@@ -2790,11 +2841,14 @@
     function generateWordLogic(isTargetGuaranteed) {
         let r = Math.random();
         
-        if (r < 0.25) {
+        if (r < 0.15) {
+            return { text: "your last name", team: 'special', isTarget: true, isBonus: false, isDistractor: false };
+        }
+        else if (r < 0.35) {
             let text = bonusWords[Math.floor(Math.random() * bonusWords.length)];
             return { text: text, team: 'bonus', isTarget: true, isBonus: true, isDistractor: false };
         }
-        else if (r < 0.35 && !isTargetGuaranteed) {
+        else if (r < 0.45 && !isTargetGuaranteed) {
             let text = distractorWords[Math.floor(Math.random() * distractorWords.length)];
             return { text: text, team: 'distractor', isTarget: false, isBonus: false, isDistractor: true };
         }
@@ -3109,13 +3163,21 @@
         w.active = false;
         words.splice(i, 1);
 
+        if (w.text === "your last name" && !useSpeechRecognition) {
+            playSound('bonus');
+            gameState = 'lastNameSpecial';
+            keys.left = keys.right = keys.up = false;
+            lastNameModal.style.display = 'flex';
+            return;
+        }
+
         if (w.isTarget) {
             
-            if (w.isBonus) {
+            if (w.isBonus || w.text === "your last name") {
                 playSound('bonus');
                 score += 500;
                 tokens += 500;
-                if (health < maxHealth) health++; 
+                if (w.isBonus && health < maxHealth) health++; 
                 spawnParticles(w.x + w.w/2, w.y + w.h/2, '#facc15');
                 floatingTexts.push(new FloatingText(w.x + w.w/2, w.y, `+500`, "#facc15"));
             } else {
@@ -3134,7 +3196,7 @@
             gameState = 'reading';
             failedAttempts = 0;
             currentReadingWords = [w.text];
-            if (!w.isBonus) {
+            if (!w.isBonus && w.text !== "your last name") {
                 for(let k = 1; k < w.multiplier; k++) {
                     currentReadingWords.push(getRandomWord(currentTargetTeam));
                 }
@@ -3339,6 +3401,7 @@
         intermissionScreen.style.display = 'none';
         leaderboardScreen.style.display = 'none';
         readingModal.style.display = 'none';
+        lastNameModal.style.display = 'none';
         storeModal.style.display = 'none';
 
         targetDisplay.style.display = 'block';
@@ -3533,6 +3596,7 @@
         targetDisplay.style.display = 'none';
         storeModal.style.display = 'none';
         readingModal.style.display = 'none';
+        lastNameModal.style.display = 'none';
         categorySelectScreen.style.display = 'none';
         updateMobileControlsVisibility();
         
@@ -3819,7 +3883,7 @@
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        if (gameState !== 'playing' && gameState !== 'store' && gameState !== 'intermission' && gameState !== 'reading') {
+        if (gameState !== 'playing' && gameState !== 'store' && gameState !== 'intermission' && gameState !== 'reading' && gameState !== 'lastNameSpecial') {
             updateBackground();
             if (currentLevel === 1 || currentLevel === 2) {
                 ctx.fillStyle = '#ffffff';
@@ -4134,6 +4198,35 @@
     }
 
     readBtn.addEventListener('click', handleReadAction);
+
+    lnCheckBtn.addEventListener('click', () => {
+        if (gameState !== 'lastNameSpecial') return;
+        score += 500;
+        tokens += 500;
+        playSound('coin');
+        spawnParticles(player.x + player.w/2, player.y + player.h/2, '#4ade80');
+        floatingTexts.push(new FloatingText(player.x + player.w/2, player.y, `+500`, "#4ade80"));
+        updateHUD();
+
+        lastNameModal.style.display = 'none';
+        gameState = 'playing';
+        keys.left = keys.right = keys.up = false;
+        player.invulnerableTimer = 180;
+        updateMobileControlsVisibility();
+        spawnSingleWord();
+    });
+
+    lnXBtn.addEventListener('click', () => {
+        if (gameState !== 'lastNameSpecial') return;
+        playSound('wrong');
+
+        lastNameModal.style.display = 'none';
+        gameState = 'playing';
+        keys.left = keys.right = keys.up = false;
+        player.invulnerableTimer = 180;
+        updateMobileControlsVisibility();
+        spawnSingleWord();
+    });
 
     goToMainMenu();
     updateMobileControlsVisibility(); 
